@@ -41,6 +41,7 @@ mod tests {
         let err = gen_setup(SetupConfig {
             include_expansions: Some(HashSet::from([Expansion::Base2])),
             project_count: Some(ProjectCount::OneProject),
+            include_cards: None,
             ban_cards: None,
         })
         .unwrap_err();
@@ -50,12 +51,7 @@ mod tests {
 
     #[test]
     fn forcing_no_expansions_at_all_is_incoherrent() {
-        let err = gen_setup(SetupConfig {
-            include_expansions: Some(HashSet::new()),
-            project_count: None,
-            ban_cards: None,
-        })
-        .unwrap_err();
+        let err = gen_setup(SetupConfig::including_expansions(HashSet::new())).unwrap_err();
 
         assert_eq!(err, GenSetupError::CouldNotSatisfyKingdomCards);
     }
@@ -65,6 +61,7 @@ mod tests {
         let setup = gen_setup(SetupConfig {
             include_expansions: Some(HashSet::from([Expansion::Base2])),
             project_count: None,
+            include_cards: None,
             ban_cards: Some(HashSet::from([KC::Witch, KC::Militia])),
         })
         .unwrap();
@@ -75,15 +72,10 @@ mod tests {
 
     #[test]
     fn expansion_list_is_respected() {
-        let expansion_1 = gen_random_expansion();
-        let expansion_2 = gen_random_expansion();
+        let expansion_1 = gen_expansion();
+        let expansion_2 = gen_expansion();
         let expansions = HashSet::from([expansion_1, expansion_2]);
-        let setup = gen_setup(SetupConfig {
-            include_expansions: Some(expansions.clone()),
-            project_count: None,
-            ban_cards: None,
-        })
-        .unwrap();
+        let setup = gen_setup(SetupConfig::including_expansions(expansions.clone())).unwrap();
 
         for card in setup.cards() {
             assert!(!expansion_set(&card).is_disjoint(&expansions))
@@ -92,12 +84,7 @@ mod tests {
 
     #[test]
     fn cards_are_distinct() {
-        let setup = gen_setup(SetupConfig {
-            include_expansions: None,
-            project_count: None,
-            ban_cards: None,
-        })
-        .unwrap();
+        let setup = gen_setup(SetupConfig::none()).unwrap();
 
         let cards = setup.cards();
         let card_set: HashSet<_> = cards.iter().collect();
@@ -107,11 +94,9 @@ mod tests {
 
     #[test]
     fn young_witch_implies_an_11th_bane_card() {
-        let setup = gen_setup(SetupConfig {
-            include_expansions: Some(HashSet::from([Expansion::Cornucopia])),
-            project_count: None,
-            ban_cards: None,
-        })
+        let setup = gen_setup(SetupConfig::including_expansions(HashSet::from([
+            Expansion::Cornucopia,
+        ])))
         .unwrap();
 
         if setup.cards().contains(&KC::YoungWitch) {
@@ -125,6 +110,7 @@ mod tests {
         let setup = gen_setup(SetupConfig {
             include_expansions: Some(HashSet::from([Expansion::Cornucopia])),
             project_count: None,
+            include_cards: None,
             ban_cards: Some(HashSet::from([KC::YoungWitch])),
         })
         .unwrap();
@@ -134,10 +120,90 @@ mod tests {
     }
 
     #[test]
+    fn banned_cards_are_not_included() {
+        let banned_card = gen_kingdom_card();
+        let setup = gen_setup(SetupConfig {
+            include_expansions: Some(expansion_set(&banned_card)),
+            project_count: None,
+            include_cards: None,
+            ban_cards: Some(HashSet::from([banned_card.clone()])),
+        })
+        .unwrap();
+
+        assert!(!setup.cards().contains(&banned_card));
+    }
+
+    #[test]
+    fn included_cards_are_included() {
+        let included_card = gen_kingdom_card();
+        let setup = gen_setup(SetupConfig::including_cards(HashSet::from([
+            included_card.clone()
+        ])))
+        .unwrap();
+
+        assert!(setup.cards().contains(&included_card));
+    }
+
+    #[test]
+    fn included_cards_dont_change_kingdom_size() {
+        let included_card = gen_kingdom_card();
+        let setup = gen_setup(SetupConfig {
+            include_expansions: None,
+            project_count: None,
+            include_cards: Some(HashSet::from([included_card.clone()])),
+            ban_cards: Some(HashSet::from([KC::YoungWitch])),
+        })
+        .unwrap();
+
+        assert_eq!(setup.cards().len(), 10);
+    }
+
+    #[test]
+    fn included_cards_need_not_have_their_expansions_included() {
+        let included_card = gen_kingdom_card();
+        let expansion = gen_expansion();
+        let setup = gen_setup(SetupConfig {
+            include_expansions: Some(HashSet::from([expansion])),
+            project_count: None,
+            include_cards: Some(HashSet::from([included_card.clone()])),
+            ban_cards: None,
+        })
+        .unwrap();
+
+        assert!(setup.cards().contains(&included_card));
+    }
+
+    #[test]
+    fn cannot_include_more_than_ten_cards() {
+        let err =
+            gen_setup(SetupConfig::including_cards(KC::iter().take(11).collect())).unwrap_err();
+
+        assert_eq!(err, GenSetupError::TooManyCardsIncluded);
+    }
+
+    #[test]
+    fn card_bans_and_includes_cannot_intersect() {
+        let card = gen_kingdom_card();
+        let err = gen_setup(SetupConfig {
+            include_expansions: None,
+            project_count: None,
+            include_cards: Some(HashSet::from([card.clone()])),
+            ban_cards: Some(HashSet::from([card.clone()])),
+        })
+        .unwrap_err();
+
+        assert_eq!(
+            err,
+            GenSetupError::IntersectingCardBansAndIncludes(vec![card])
+        );
+    }
+
+    #[test]
     fn bans_can_make_kingdom_cards_incoherent() {
         let err = gen_setup(SetupConfig {
             include_expansions: None,
             project_count: None,
+            include_cards: None,
             ban_cards: Some(KC::iter().collect()),
         })
         .unwrap_err();
@@ -150,19 +216,34 @@ mod tests {
         let err = gen_setup(SetupConfig {
             include_expansions: Some(HashSet::from([Expansion::Cornucopia])),
             project_count: None,
+            include_cards: None,
             // We have enough kingdom cards but not enough to pick a bane card
-            ban_cards: Some(HashSet::from([KC::Hamlet, KC::FortuneTeller, KC::Menagerie])),
+            ban_cards: Some(HashSet::from([
+                KC::Hamlet,
+                KC::FortuneTeller,
+                KC::Menagerie,
+            ])),
         })
-            .unwrap_err();
+        .unwrap_err();
 
         assert_eq!(err, GenSetupError::CouldNotSatisfyBaneCard);
     }
 
-    fn gen_random_expansion() -> Expansion {
+    fn gen_expansion() -> Expansion {
         let mut rng = rand::thread_rng();
 
         Expansion::iter()
             .collect::<Vec<Expansion>>()
+            .choose(&mut rng)
+            .unwrap()
+            .clone()
+    }
+
+    fn gen_kingdom_card() -> KC {
+        let mut rng = rand::thread_rng();
+
+        KC::iter()
+            .collect::<Vec<KC>>()
             .choose(&mut rng)
             .unwrap()
             .clone()
@@ -865,10 +946,43 @@ pub struct SetupConfig {
     /// Cards to be sure _not_ to include
     ban_cards: Option<HashSet<KC>>,
 
+    /// Cards to be sure to include. It is okay for this to be inconsistent with
+    /// `include_expansions` (e.g. value here not member of listed expansions).
+    include_cards: Option<HashSet<KC>>,
+
     /// How many projects to include (for random of count)
     /// If expansions are provided and we can't pick enough projects to satisfy
     /// this count, we'll return an error
     project_count: Option<ProjectCount>,
+}
+
+impl SetupConfig {
+    pub fn none() -> SetupConfig {
+        SetupConfig {
+            include_expansions: None,
+            ban_cards: None,
+            include_cards: None,
+            project_count: None,
+        }
+    }
+
+    pub fn including_expansions(expansions: HashSet<Expansion>) -> SetupConfig {
+        SetupConfig {
+            include_expansions: Some(expansions),
+            ban_cards: None,
+            include_cards: None,
+            project_count: None,
+        }
+    }
+
+    pub fn including_cards(cards: HashSet<KC>) -> SetupConfig {
+        SetupConfig {
+            include_expansions: None,
+            ban_cards: None,
+            include_cards: Some(cards),
+            project_count: None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -876,6 +990,8 @@ pub enum GenSetupError {
     CouldNotSatisfyProjectsFromExpansions,
     CouldNotSatisfyKingdomCards,
     CouldNotSatisfyBaneCard,
+    IntersectingCardBansAndIncludes(Vec<KC>),
+    TooManyCardsIncluded,
 }
 
 fn expansion_set<T: Expansions>(v: &T) -> HashSet<Expansion> {
@@ -885,6 +1001,17 @@ fn expansion_set<T: Expansions>(v: &T) -> HashSet<Expansion> {
 /// Generate a valid setup from options
 pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
     let mut rng = rand::thread_rng();
+
+    for bans in &config.ban_cards {
+        for includes in &config.include_cards {
+            if !bans.is_disjoint(includes) {
+                let cards_in_common = bans.intersection(&includes);
+                return Err(GenSetupError::IntersectingCardBansAndIncludes(
+                    cards_in_common.cloned().collect(),
+                ));
+            }
+        }
+    }
 
     let desired_expansions = config
         .include_expansions
@@ -896,9 +1023,16 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
 
     let banned_cards = config.ban_cards.unwrap_or(HashSet::new());
 
+    let forced_kingdom_cards = config.include_cards.unwrap_or(HashSet::new());
+
+    if forced_kingdom_cards.len() > 10 {
+        return Err(GenSetupError::TooManyCardsIncluded);
+    }
+
     let mut possible_kingdom_cards: Vec<KC> = KC::iter()
         .filter(|kc| !expansion_set(kc).is_disjoint(&desired_expansions))
         .filter(|kc| !banned_cards.contains(kc))
+        .filter(|kc| !forced_kingdom_cards.contains(kc))
         .collect();
 
     let project_count = match config.project_count {
@@ -919,7 +1053,15 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
 
     possible_kingdom_cards.shuffle(&mut rng);
 
-    let kingdom_cards: Vec<KC> = possible_kingdom_cards.iter().take(10).cloned().collect();
+    let random_needed = 10 - &forced_kingdom_cards.len();
+
+    let mut kingdom_cards: Vec<KC> = possible_kingdom_cards
+        .iter()
+        .take(random_needed)
+        .cloned()
+        .collect();
+
+    kingdom_cards.append(&mut forced_kingdom_cards.iter().cloned().collect());
 
     if kingdom_cards.len() < 10 {
         return Err(GenSetupError::CouldNotSatisfyKingdomCards);
@@ -928,7 +1070,11 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
     let mut bane_card: Option<KC> = None;
 
     if kingdom_cards.contains(&KC::YoungWitch) {
-        bane_card = possible_kingdom_cards.iter().skip(10).next().cloned();
+        bane_card = possible_kingdom_cards
+            .iter()
+            .skip(random_needed)
+            .next()
+            .cloned();
 
         if bane_card.is_none() {
             return Err(GenSetupError::CouldNotSatisfyBaneCard);
