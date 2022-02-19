@@ -2,6 +2,7 @@ use clap::{Arg, ArgMatches, Command};
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::hash::Hash;
+use std::process;
 use std::str::FromStr;
 
 fn main() {
@@ -86,11 +87,29 @@ fn main() {
 
     let setup = dominion::gen_setup(config);
 
-    if matches.is_present("output-raw") {
-        println!("================== RAW ==================");
-        println!("");
-        println!("{:?}", setup);
-        println!("");
+    match setup {
+        Ok(setup) => {
+            if matches.is_present("output-raw") {
+                println!("================== RAW ==================");
+                println!("");
+                println!("{:?}", setup);
+                println!("");
+            }
+
+            if matches.is_present("output-code") {
+                println!("================== CODE ==================");
+                println!("");
+                println!("{}", dominion::pretty::code("Game", setup));
+                println!("");
+            }
+        }
+        Err(err) => {
+            eprintln!(
+                "Error generating kingdom!\n\n{}",
+                dominion::pretty::gen_error(err)
+            );
+            process::exit(1);
+        }
     }
 }
 

@@ -1115,3 +1115,52 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
         bane_card,
     })
 }
+
+pub mod pretty {
+    use super::*;
+    use chrono::prelude::*;
+
+    pub fn code(name: &str, setup: Setup) -> String {
+        let now_local = Local::now();
+
+        format!(
+            "\
+           , Played {{ name = Just \"{} at {}\"
+           , at = Just $ Date {{year={}, month={}, day={}}}
+           , setup = {}
+           , players = Just []
+           , rating = Nothing
+           }}
+",
+            name,
+            now_local,
+            now_local.year(),
+            now_local.month(),
+            now_local.day(),
+            format_setup(setup)
+        )
+    }
+
+    fn format_setup(setup: Setup) -> String {
+        match (setup.bane_card, setup.project_cards.len()) {
+            (None, 0) => format!("           , setup = S.standard {:?}", setup.kingdom_cards),
+            _ => String::new(),
+        }
+    }
+
+    pub fn gen_error(err: GenSetupError) -> String {
+        match err {
+            GenSetupError::CouldNotSatisfyProjectsFromExpansions => {
+                "The requested project count could not be satisfied! Ensure you're not specifying expansions which preclude projects.".to_string()
+            }
+
+            GenSetupError::CouldNotSatisfyKingdomCards => "Could not pick 10 kingdom cards! Ensure your filters don't over-limit cards.".to_string(),
+
+            GenSetupError::CouldNotSatisfyBaneCard => "Could not pick a bane card! Ensure your filters don't over-limit cards.".to_string(),
+
+            GenSetupError::IntersectingCardBansAndIncludes(cards) => format!("I can't ban and include cards! The following exist in the ban and include lists: {:?}", cards),
+
+            GenSetupError::TooManyCardsIncluded => "Too many cards were asked to be included! I currently can't generate a kingdom with more than 10 cards.".to_string(),
+        }
+    }
+}
