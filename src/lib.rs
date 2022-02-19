@@ -1124,8 +1124,7 @@ pub mod pretty {
         let now_local = Local::now();
 
         format!(
-            "\
-           , Played {{ name = Just \"{} at {}\"
+            "  , Played {{ name = Just \"{} at {}\"
            , at = Just $ Date {{year={}, month={}, day={}}}
            , setup = {}
            , players = Just []
@@ -1143,8 +1142,16 @@ pub mod pretty {
 
     fn format_setup(setup: Setup) -> String {
         match (setup.bane_card, setup.project_cards.len()) {
-            (None, 0) => format!("           , setup = S.standard {:?}", setup.kingdom_cards),
-            _ => String::new(),
+            (None, 0) => format!("S.standard {:?}", setup.kingdom_cards),
+            (Some(bane), 0) => format!("S.bane {:?} {:?}", bane, setup.kingdom_cards),
+            (None, _) => format!(
+                "S.standardWithProjects {:?} {:?}",
+                setup.project_cards, setup.kingdom_cards
+            ),
+            (Some(bane), _) => format!(
+                "S.baneWithProjects {:?} {:?} {:?}",
+                bane, setup.project_cards, setup.kingdom_cards
+            ),
         }
     }
 
