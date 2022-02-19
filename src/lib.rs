@@ -7,9 +7,10 @@ use strum_macros::{EnumCount as EnumCountMacro, EnumIter};
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::seq::SliceRandom;
 
     #[test]
-    fn bane_setup_works() {
+    fn bane_setup_has_the_expected_cards() {
         let others = vec![KC::Chapel, KC::Sentry, KC::YoungWitch];
         let setup = Setup::bane(KC::Bandit, others.clone());
 
@@ -17,10 +18,12 @@ mod tests {
         for other in others {
             assert!(setup.cards().contains(&other));
         }
+
+        assert_eq!(setup.cards().len(), 4);
     }
 
     #[test]
-    fn expansion_map_works_for_some_basic_cases() {
+    fn expansion_set_works_for_some_basic_cases() {
         let militia_expansions = expansion_set(&KC::Militia);
 
         assert!(militia_expansions.contains(&Expansion::Base1));
@@ -38,6 +41,7 @@ mod tests {
         let err = gen_setup(SetupConfig {
             include_expansions: Some(HashSet::from([Expansion::Base2])),
             project_count: Some(ProjectCount::OneProject),
+            ban_cards: None,
         })
         .unwrap_err();
 
@@ -48,11 +52,120 @@ mod tests {
     fn forcing_no_expansions_at_all_is_incoherrent() {
         let err = gen_setup(SetupConfig {
             include_expansions: Some(HashSet::new()),
-            project_count: None
+            project_count: None,
+            ban_cards: None,
+        })
+        .unwrap_err();
+
+        assert_eq!(err, GenSetupError::CouldNotSatisfyKingdomCards);
+    }
+
+    #[test]
+    fn banned_cards_dont_come_up_in_the_setup() {
+        let setup = gen_setup(SetupConfig {
+            include_expansions: Some(HashSet::from([Expansion::Base2])),
+            project_count: None,
+            ban_cards: Some(HashSet::from([KC::Witch, KC::Militia])),
+        })
+        .unwrap();
+
+        assert!(!setup.cards().contains(&KC::Witch));
+        assert!(!setup.cards().contains(&KC::Militia));
+    }
+
+    #[test]
+    fn expansion_list_is_respected() {
+        let expansion_1 = gen_random_expansion();
+        let expansion_2 = gen_random_expansion();
+        let expansions = HashSet::from([expansion_1, expansion_2]);
+        let setup = gen_setup(SetupConfig {
+            include_expansions: Some(expansions.clone()),
+            project_count: None,
+            ban_cards: None,
+        })
+        .unwrap();
+
+        for card in setup.cards() {
+            assert!(!expansion_set(&card).is_disjoint(&expansions))
+        }
+    }
+
+    #[test]
+    fn cards_are_distinct() {
+        let setup = gen_setup(SetupConfig {
+            include_expansions: None,
+            project_count: None,
+            ban_cards: None,
+        })
+        .unwrap();
+
+        let cards = setup.cards();
+        let card_set: HashSet<_> = cards.iter().collect();
+
+        assert_eq!(cards.len(), card_set.len());
+    }
+
+    #[test]
+    fn young_witch_implies_an_11th_bane_card() {
+        let setup = gen_setup(SetupConfig {
+            include_expansions: Some(HashSet::from([Expansion::Cornucopia])),
+            project_count: None,
+            ban_cards: None,
+        })
+        .unwrap();
+
+        if setup.cards().contains(&KC::YoungWitch) {
+            assert!(&setup.bane_card.is_some());
+            assert_eq!(11, setup.cards().len());
+        }
+    }
+
+    #[test]
+    fn no_young_witch_no_bane_card() {
+        let setup = gen_setup(SetupConfig {
+            include_expansions: Some(HashSet::from([Expansion::Cornucopia])),
+            project_count: None,
+            ban_cards: Some(HashSet::from([KC::YoungWitch])),
+        })
+        .unwrap();
+
+        assert!(&setup.bane_card.is_none());
+        assert_eq!(setup.cards().len(), 10);
+    }
+
+    #[test]
+    fn bans_can_make_kingdom_cards_incoherent() {
+        let err = gen_setup(SetupConfig {
+            include_expansions: None,
+            project_count: None,
+            ban_cards: Some(KC::iter().collect()),
+        })
+        .unwrap_err();
+
+        assert_eq!(err, GenSetupError::CouldNotSatisfyKingdomCards);
+    }
+
+    #[test]
+    fn bans_can_make_bane_card_incoherent() {
+        let err = gen_setup(SetupConfig {
+            include_expansions: Some(HashSet::from([Expansion::Cornucopia])),
+            project_count: None,
+            // We have enough kingdom cards but not enough to pick a bane card
+            ban_cards: Some(HashSet::from([KC::Hamlet, KC::FortuneTeller, KC::Menagerie])),
         })
             .unwrap_err();
 
-        assert_eq!(err, GenSetupError::CouldNotSatisfyKingdomCards);
+        assert_eq!(err, GenSetupError::CouldNotSatisfyBaneCard);
+    }
+
+    fn gen_random_expansion() -> Expansion {
+        let mut rng = rand::thread_rng();
+
+        Expansion::iter()
+            .collect::<Vec<Expansion>>()
+            .choose(&mut rng)
+            .unwrap()
+            .clone()
     }
 }
 
@@ -729,7 +842,13 @@ pub enum ProjectCount {
 }
 
 impl ProjectCount {
-    fn count(&self) -> usize {
+    /// Convert enum to actual count
+    ///
+    ///```
+    ///let count = dominion::ProjectCount::OneProject.count();
+    ///assert_eq!(count, 1);
+    ///```
+    pub fn count(&self) -> usize {
         match self {
             ProjectCount::NoProjects => 0,
             ProjectCount::OneProject => 1,
@@ -742,6 +861,9 @@ impl ProjectCount {
 pub struct SetupConfig {
     /// Which specific expansions to include
     include_expansions: Option<HashSet<Expansion>>,
+
+    /// Cards to be sure _not_ to include
+    ban_cards: Option<HashSet<KC>>,
 
     /// How many projects to include (for random of count)
     /// If expansions are provided and we can't pick enough projects to satisfy
@@ -772,8 +894,11 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
         .filter(|p| !expansion_set(p).is_disjoint(&desired_expansions))
         .collect();
 
+    let banned_cards = config.ban_cards.unwrap_or(HashSet::new());
+
     let mut possible_kingdom_cards: Vec<KC> = KC::iter()
         .filter(|kc| !expansion_set(kc).is_disjoint(&desired_expansions))
+        .filter(|kc| !banned_cards.contains(kc))
         .collect();
 
     let project_count = match config.project_count {
