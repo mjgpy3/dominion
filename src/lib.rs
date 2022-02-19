@@ -94,15 +94,13 @@ mod tests {
 
     #[test]
     fn young_witch_implies_an_11th_bane_card() {
-        let setup = gen_setup(SetupConfig::including_expansions(HashSet::from([
-            Expansion::Cornucopia,
+        let setup = gen_setup(SetupConfig::including_cards(HashSet::from([
+            KC::YoungWitch,
         ])))
         .unwrap();
 
-        if setup.cards().contains(&KC::YoungWitch) {
-            assert!(&setup.bane_card.is_some());
-            assert_eq!(11, setup.cards().len());
-        }
+        assert!(&setup.bane_card.is_some());
+        assert_eq!(11, setup.cards().len());
     }
 
     #[test]
@@ -250,6 +248,7 @@ mod tests {
     }
 }
 
+/// A kingdom card
 #[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Clone, Eq, Hash)]
 pub enum KC {
     ActingTroupe,
@@ -535,6 +534,7 @@ impl BaseCost for KC {
     }
 }
 
+/// Supported expansions
 #[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, std::clone::Clone)]
 pub enum Expansion {
     Base1,
@@ -693,6 +693,7 @@ impl Expansions for KC {
     }
 }
 
+/// Card's type -- how it functions
 #[derive(EnumIter, Debug, PartialEq, EnumCountMacro)]
 pub enum CardType {
     Action,
@@ -884,9 +885,9 @@ impl Expansions for Project {
 /// A game's setup
 #[derive(Debug)]
 pub struct Setup {
-    kingdom_cards: Vec<KC>,
-    bane_card: Option<KC>,
-    project_cards: Vec<Project>,
+    pub kingdom_cards: Vec<KC>,
+    pub bane_card: Option<KC>,
+    pub project_cards: Vec<Project>,
 }
 
 impl Setup {
@@ -985,12 +986,26 @@ impl SetupConfig {
     }
 }
 
+/// Errors we may encounter when generating a setup. These are mostly due to
+/// incoherent configurations.
 #[derive(Debug, PartialEq)]
 pub enum GenSetupError {
+    /// Asked for some number of projects but didn't supply enough expansions to
+    /// choose them.
     CouldNotSatisfyProjectsFromExpansions,
+
+    /// Filtered in such a way as to not allow us to pick enough kingdom cards.
     CouldNotSatisfyKingdomCards,
+
+    /// Filtered in such a way as to not allow us to pick a bane card.
     CouldNotSatisfyBaneCard,
+
+    /// Asked to ban and include one or more cards.
     IntersectingCardBansAndIncludes(Vec<KC>),
+
+    /// Asked to include more cards than the kingdom can handle. Right now this
+    /// just errors if given more than 10. Technically we should be able to
+    /// handle an 11th if `KC::YoungWitch` is one of them.
     TooManyCardsIncluded,
 }
 
@@ -998,7 +1013,7 @@ fn expansion_set<T: Expansions>(v: &T) -> HashSet<Expansion> {
     v.expansions().into_iter().collect()
 }
 
-/// Generate a valid setup from options
+/// Generate a valid setup from options (`SetupConfig`)
 pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
     let mut rng = rand::thread_rng();
 
