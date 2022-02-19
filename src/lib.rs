@@ -1,5 +1,6 @@
 use rand::seq::SliceRandom;
 use rand::Rng;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use strum::IntoEnumIterator;
 use strum_macros::{EnumCount as EnumCountMacro, EnumIter, EnumString};
@@ -1120,7 +1121,7 @@ pub mod pretty {
     use super::*;
     use chrono::prelude::*;
 
-    pub fn code(name: &str, setup: Setup) -> String {
+    pub fn code(name: &str, setup: &Setup) -> String {
         let now_local = Local::now();
 
         format!(
@@ -1140,8 +1141,55 @@ pub mod pretty {
         )
     }
 
-    fn format_setup(setup: Setup) -> String {
-        match (setup.bane_card, setup.project_cards.len()) {
+    fn format_card(card: &KC, bane: &Option<KC>) -> String {
+        match bane {
+            Some(c) => format!(" - {:?} {}", card, if c == card { " (Bane)" } else { "" }),
+            None => format!(" - {:?}", card),
+        }
+    }
+
+    pub fn pretty(setup: &Setup) -> String {
+        let mut cards_by_expansion: HashMap<String, String> = HashMap::new();
+
+        for card in setup.cards() {
+            let exp = card
+                .expansions()
+                .iter()
+                .map(|e| format!("{:?}", e))
+                .collect::<Vec<_>>()
+                .join("/");
+
+            cards_by_expansion
+                .entry(exp)
+                .and_modify(|s| {
+                    s.push('\n');
+                    s.push_str(&format_card(&card, &setup.bane_card))
+                })
+                .or_insert(format_card(&card, &setup.bane_card));
+        }
+
+        let mut kingdom_cards = String::new();
+
+        for (exp, cs) in cards_by_expansion.into_iter() {
+            kingdom_cards.push_str(&exp);
+            kingdom_cards.push('\n');
+            kingdom_cards.push_str(&cs);
+            kingdom_cards.push('\n');
+        }
+
+        format!(
+            "\
+._______________.
+|               |
+| Kingdom Cards |
+|_______________|
+
+{}"
+        , kingdom_cards)
+    }
+
+    fn format_setup(setup: &Setup) -> String {
+        match (&setup.bane_card, setup.project_cards.len()) {
             (None, 0) => format!("S.standard {:?}", setup.kingdom_cards),
             (Some(bane), 0) => format!("S.bane {:?} {:?}", bane, setup.kingdom_cards),
             (None, _) => format!(

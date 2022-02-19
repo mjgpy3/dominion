@@ -89,17 +89,24 @@ fn main() {
 
     match setup {
         Ok(setup) => {
+            if matches.is_present("output-pretty") {
+                println!("------------------ SETUP ------------------");
+                println!("");
+                println!("{}", dominion::pretty::pretty(&setup));
+                println!("");
+            }
+
             if matches.is_present("output-raw") {
-                println!("================== RAW ==================");
+                println!("------------------ RAW ------------------");
                 println!("");
                 println!("{:?}", setup);
                 println!("");
             }
 
             if matches.is_present("output-code") {
-                println!("================== CODE ==================");
+                println!("------------------ CODE ------------------");
                 println!("");
-                println!("{}", dominion::pretty::code("Game", setup));
+                println!("{}", dominion::pretty::code("Game", &setup));
                 println!("");
             }
         }
