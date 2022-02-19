@@ -388,7 +388,9 @@ pub enum KC {
     YoungWitch,
 }
 
+/// What is a card's base cost?
 pub trait BaseCost {
+    /// What is a card's base cost?
     fn base_cost(&self) -> u8;
 }
 
@@ -546,7 +548,9 @@ pub enum Expansion {
     Seaside,
 }
 
+/// To what expansions does a card belong?
 pub trait Expansions {
+    /// To what expansions does a card belong?
     fn expansions(&self) -> Vec<Expansion>;
 }
 
@@ -704,8 +708,9 @@ pub enum CardType {
     Duration,
 }
 
+/// What types does a card have?
 pub trait CardTypes {
-    /// What types does a particular card have?
+    /// What types does a card have?
     fn card_types(&self) -> Vec<CardType>;
 }
 
@@ -891,7 +896,7 @@ pub struct Setup {
 }
 
 impl Setup {
-    fn new(kingdom_cards: Vec<KC>, bane_card: Option<KC>, project_cards: Vec<Project>) -> Self {
+    pub fn new(kingdom_cards: Vec<KC>, bane_card: Option<KC>, project_cards: Vec<Project>) -> Self {
         Self {
             kingdom_cards,
             bane_card,
@@ -899,7 +904,7 @@ impl Setup {
         }
     }
 
-    fn bane(bane: KC, other_kingdom: Vec<KC>) -> Self {
+    pub fn bane(bane: KC, other_kingdom: Vec<KC>) -> Self {
         Self {
             kingdom_cards: other_kingdom,
             bane_card: Some(bane),
@@ -907,7 +912,7 @@ impl Setup {
         }
     }
 
-    fn cards(&self) -> Vec<KC> {
+    pub fn cards(&self) -> Vec<KC> {
         let mut results = self.kingdom_cards.clone();
         for bane in &self.bane_card {
             results.push(bane.clone());
@@ -958,6 +963,7 @@ pub struct SetupConfig {
 }
 
 impl SetupConfig {
+    /// Give us a totally random game
     pub fn none() -> SetupConfig {
         SetupConfig {
             include_expansions: None,
@@ -967,6 +973,7 @@ impl SetupConfig {
         }
     }
 
+    /// Only include these expansions
     pub fn including_expansions(expansions: HashSet<Expansion>) -> SetupConfig {
         SetupConfig {
             include_expansions: Some(expansions),
@@ -976,6 +983,7 @@ impl SetupConfig {
         }
     }
 
+    /// Be sure to include (at least) these cards
     pub fn including_cards(cards: HashSet<KC>) -> SetupConfig {
         SetupConfig {
             include_expansions: None,
