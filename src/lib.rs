@@ -2,7 +2,7 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 use std::collections::HashSet;
 use strum::IntoEnumIterator;
-use strum_macros::{EnumCount as EnumCountMacro, EnumIter};
+use strum_macros::{EnumCount as EnumCountMacro, EnumIter, EnumString};
 
 #[cfg(test)]
 mod tests {
@@ -249,7 +249,7 @@ mod tests {
 }
 
 /// A kingdom card
-#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Clone, Eq, Hash)]
+#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Clone, Eq, Hash, EnumString)]
 pub enum KC {
     ActingTroupe,
     Adventurer,
@@ -537,7 +537,7 @@ impl BaseCost for KC {
 }
 
 /// Supported expansions
-#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, std::clone::Clone)]
+#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, std::clone::Clone, EnumString)]
 pub enum Expansion {
     Base1,
     Base2,
@@ -921,10 +921,14 @@ impl Setup {
     }
 }
 
+#[derive(EnumString, Debug)]
 /// The number of projects allowed in a game
 pub enum ProjectCount {
+    #[strum(serialize = "0")]
     NoProjects,
+    #[strum(serialize = "1")]
     OneProject,
+    #[strum(serialize = "2")]
     TwoProjects,
 }
 
@@ -945,21 +949,22 @@ impl ProjectCount {
 }
 
 /// How to setup a game
+#[derive(Debug)]
 pub struct SetupConfig {
     /// Which specific expansions to include
-    include_expansions: Option<HashSet<Expansion>>,
+    pub include_expansions: Option<HashSet<Expansion>>,
 
     /// Cards to be sure _not_ to include
-    ban_cards: Option<HashSet<KC>>,
+    pub ban_cards: Option<HashSet<KC>>,
 
     /// Cards to be sure to include. It is okay for this to be inconsistent with
     /// `include_expansions` (e.g. value here not member of listed expansions).
-    include_cards: Option<HashSet<KC>>,
+    pub include_cards: Option<HashSet<KC>>,
 
     /// How many projects to include (for random of count)
     /// If expansions are provided and we can't pick enough projects to satisfy
     /// this count, we'll return an error
-    project_count: Option<ProjectCount>,
+    pub project_count: Option<ProjectCount>,
 }
 
 impl SetupConfig {
