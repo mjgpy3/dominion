@@ -250,7 +250,7 @@ mod tests {
 }
 
 /// A kingdom card
-#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Clone, Eq, Hash, EnumString)]
+#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Clone, Eq, Hash, EnumString, PartialOrd, Ord)]
 pub enum KC {
     ActingTroupe,
     Adventurer,
@@ -858,7 +858,7 @@ impl CardTypes for KC {
 }
 
 /// A project card
-#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, Clone)]
+#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, Clone, Ord, PartialOrd)]
 pub enum Project {
     Academy,
     Barracks,
@@ -1148,10 +1148,14 @@ pub mod pretty {
         }
     }
 
-    pub fn pretty(setup: &Setup) -> String {
+    fn kingdom_card_by_expansion_list(setup: &Setup) -> String {
         let mut cards_by_expansion: HashMap<String, String> = HashMap::new();
 
-        for card in setup.cards() {
+        let mut cards = setup.cards();
+
+        cards.sort();
+
+        for card in cards {
             let exp = card
                 .expansions()
                 .iter()
@@ -1184,8 +1188,62 @@ pub mod pretty {
 | Kingdom Cards |
 |_______________|
 
-{}"
-        , kingdom_cards)
+{}",
+            kingdom_cards
+        )
+    }
+
+    fn project_card_by_expansion_list(project_cards: &Vec<Project>) -> String {
+        if project_cards.is_empty() {
+            return "".to_string()
+        }
+
+        let mut cards_by_expansion: HashMap<String, String> = HashMap::new();
+
+        let mut cards = project_cards.clone();
+
+        cards.sort();
+
+        for card in cards {
+            let exp = card
+                .expansions()
+                .iter()
+                .map(|e| format!("{:?}", e))
+                .collect::<Vec<_>>()
+                .join("/");
+
+            cards_by_expansion
+                .entry(exp)
+                .and_modify(|s| {
+                    s.push('\n');
+                    s.push_str(&format!(" - {:?}", card))
+                })
+                .or_insert(format!(" - {:?}", card));
+        }
+
+        let mut project_cards = String::new();
+
+        for (exp, cs) in cards_by_expansion.into_iter() {
+            project_cards.push_str(&exp);
+            project_cards.push('\n');
+            project_cards.push_str(&cs);
+            project_cards.push('\n');
+        }
+
+        format!(
+            "\
+._______________.
+|               |
+| Project Cards |
+|_______________|
+
+{}",
+            project_cards
+        )
+    }
+
+    pub fn pretty(setup: &Setup) -> String {
+        format!("{}\n{}", kingdom_card_by_expansion_list(&setup), project_card_by_expansion_list(&setup.project_cards))
     }
 
     fn format_setup(setup: &Setup) -> String {
