@@ -145,7 +145,12 @@ mod tests {
 
     #[test]
     fn included_cards_dont_change_kingdom_size() {
-        let included_card = gen_kingdom_card();
+        let mut included_card = gen_kingdom_card();
+
+        while included_card == KC::YoungWitch {
+            included_card = gen_kingdom_card();
+        }
+
         let setup = gen_setup(SetupConfig {
             include_expansions: None,
             project_count: None,
@@ -250,7 +255,9 @@ mod tests {
 }
 
 /// A kingdom card
-#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Clone, Eq, Hash, EnumString, PartialOrd, Ord)]
+#[derive(
+    EnumIter, Debug, PartialEq, EnumCountMacro, Clone, Eq, Hash, EnumString, PartialOrd, Ord,
+)]
 pub enum KC {
     ActingTroupe,
     Adventurer,
@@ -538,7 +545,7 @@ impl BaseCost for KC {
 }
 
 /// Supported expansions
-#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, std::clone::Clone, EnumString)]
+#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, std::clone::Clone, EnumString, PartialOrd, Ord)]
 pub enum Expansion {
     Base1,
     Base2,
@@ -699,7 +706,7 @@ impl Expansions for KC {
 }
 
 /// Card's type -- how it functions
-#[derive(EnumIter, Debug, PartialEq, EnumCountMacro)]
+#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, Clone, PartialOrd, Ord)]
 pub enum CardType {
     Action,
     Attack,
@@ -1118,6 +1125,7 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
 }
 
 pub mod pretty {
+    use super::hist::Hist;
     use super::*;
     use chrono::prelude::*;
 
@@ -1195,7 +1203,7 @@ pub mod pretty {
 
     fn project_card_by_expansion_list(project_cards: &Vec<Project>) -> String {
         if project_cards.is_empty() {
-            return "".to_string()
+            return "".to_string();
         }
 
         let mut cards_by_expansion: HashMap<String, String> = HashMap::new();
@@ -1243,7 +1251,53 @@ pub mod pretty {
     }
 
     pub fn pretty(setup: &Setup) -> String {
-        format!("{}\n{}", kingdom_card_by_expansion_list(&setup), project_card_by_expansion_list(&setup.project_cards))
+        format!(
+            "{}\n{}",
+            kingdom_card_by_expansion_list(&setup),
+            project_card_by_expansion_list(&setup.project_cards)
+        )
+    }
+
+    pub fn hists(setup: &Setup) -> String {
+        let cost_zeros = KC::iter()
+            .map(|c| Hist::n(c.base_cost(), 0))
+            .fold(Hist::empty(), |s, c| s + c);
+        let costs = setup
+            .cards()
+            .iter()
+            .fold(cost_zeros, |s, c| s + Hist::one(c.base_cost()));
+
+        let types_zeros = CardType::iter()
+            .map(|t| Hist::n(t, 0))
+            .fold(Hist::empty(), |s, c| s + c);
+        let types = setup.cards().iter().fold(types_zeros, |s, c| {
+            s + c
+                .card_types()
+                .iter()
+                .fold(Hist::empty(), |s, t| s + Hist::one(t.clone()))
+        });
+
+        let expansions = setup.cards().iter().fold(Hist::empty(), |s, c| {
+            s + c
+                .expansions()
+                .iter()
+                .fold(Hist::empty(), |s, e| s + Hist::one(e.clone()))
+        });
+
+        format!("\
+Cards' Costs:
+-------------
+{}
+
+Cards' types:
+-------------
+{}
+
+Expansions' cards:
+-----------------
+{}
+
+", costs.pretty(), types.pretty(), expansions.pretty())
     }
 
     fn format_setup(setup: &Setup) -> String {
@@ -1274,6 +1328,106 @@ pub mod pretty {
             GenSetupError::IntersectingCardBansAndIncludes(cards) => format!("I can't ban and include cards! The following exist in the ban and include lists: {:?}", cards),
 
             GenSetupError::TooManyCardsIncluded => "Too many cards were asked to be included! I currently can't generate a kingdom with more than 10 cards.".to_string(),
+        }
+    }
+}
+
+pub mod hist {
+    use std::collections::HashMap;
+    use std::fmt::Debug;
+    use std::hash::Hash;
+    use std::ops::Add;
+
+    /// A histogram for counting instances
+    pub struct Hist<T> {
+        hist: HashMap<T, usize>,
+    }
+
+    impl<T> Hist<T> {
+        /// No values counted, the empty `Hist`
+        ///
+        /// ```
+        /// let c: dominion::hist::Hist<&str> = dominion::hist::Hist::empty();
+        /// assert_eq!(c.count(&"hi"), 0);
+        /// ```
+        pub fn empty() -> Self {
+            Hist {
+                hist: HashMap::new(),
+            }
+        }
+    }
+
+    impl<T: Ord + Debug + Hash> Hist<T> {
+        pub fn pretty(self: &Self) -> String {
+            let mut keys: Vec<_> = self.hist.keys().collect();
+            keys.sort();
+            let displayed_keys = keys.iter().map(|k| format!("{:?}", k));
+            displayed_keys
+                .max_by_key(|k| k.len())
+                .map(|k| k.len())
+                .map(|key_length| {
+                    keys.iter()
+                        .map(|k| {
+                            let n = self.count(k);
+                            let k = format!("{:?}", k);
+                            format!("{:key_length$}: {:■<n$} ({})", k, "", n)
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                })
+                .unwrap_or(String::new())
+        }
+    }
+
+    impl<T: Eq + Hash> Hist<T> {
+        /// Count a single instance
+        ///
+        /// ```
+        /// let c = dominion::hist::Hist::one("car".to_string());
+        /// assert_eq!(c.count(&"car".to_string()), 1);
+        /// ```
+        pub fn one(v: T) -> Self {
+            Hist::n(v, 1)
+        }
+
+        /// Count `n` instances
+        ///
+        /// ```
+        /// let c = dominion::hist::Hist::n("car".to_string(), 5);
+        /// assert_eq!(c.count(&"car".to_string()), 5);
+        /// ```
+        pub fn n(v: T, n: usize) -> Self {
+            Hist {
+                hist: HashMap::from([(v, n)]),
+            }
+        }
+
+        /// Get element count
+        pub fn count(self: &Self, v: &T) -> usize {
+            self.hist.get(&v).unwrap_or(&0).clone()
+        }
+    }
+
+    impl<T: Clone + Eq + Hash> Add<Hist<T>> for Hist<T> {
+        type Output = Hist<T>;
+
+        /// Merge counts of elements
+        ///
+        /// ```
+        /// use dominion::hist::Hist;
+        /// let c = Hist::one("car".to_string()) + Hist::one("truck".to_string()) + Hist::one("car".to_string());
+        /// assert_eq!(c.count(&"car".to_string()), 2);
+        /// assert_eq!(c.count(&"truck".to_string()), 1);
+        /// assert_eq!(c.count(&"bus".to_string()), 0);
+        /// ```
+        fn add(self: Hist<T>, other: Hist<T>) -> Hist<T> {
+            let mut hist = self.hist.clone();
+
+            for (v, count) in other.hist {
+                hist.entry(v).and_modify(|c| *c += count).or_insert(count);
+            }
+
+            Hist { hist }
         }
     }
 }

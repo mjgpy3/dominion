@@ -109,6 +109,13 @@ fn main() {
                 println!("{}", dominion::pretty::code("Game", &setup));
                 println!("");
             }
+
+            if matches.is_present("output-hists") {
+                println!("------------------ HISTS ------------------");
+                println!("");
+                println!("{}", dominion::pretty::hists(&setup));
+                println!("");
+            }
         }
         Err(err) => {
             eprintln!(
