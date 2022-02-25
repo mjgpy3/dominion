@@ -545,7 +545,18 @@ impl BaseCost for KC {
 }
 
 /// Supported expansions
-#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, std::clone::Clone, EnumString, PartialOrd, Ord)]
+#[derive(
+    EnumIter,
+    Debug,
+    PartialEq,
+    EnumCountMacro,
+    Eq,
+    Hash,
+    std::clone::Clone,
+    EnumString,
+    PartialOrd,
+    Ord,
+)]
 pub enum Expansion {
     Base1,
     Base2,
@@ -1284,7 +1295,8 @@ pub mod pretty {
                 .fold(Hist::empty(), |s, e| s + Hist::one(e.clone()))
         });
 
-        format!("\
+        format!(
+            "\
 Cards' Costs:
 -------------
 {}
@@ -1297,7 +1309,11 @@ Expansions' cards:
 -----------------
 {}
 
-", costs.pretty(), types.pretty(), expansions.pretty())
+",
+            costs.pretty(),
+            types.pretty(),
+            expansions.pretty()
+        )
     }
 
     fn format_setup(setup: &Setup) -> String {
