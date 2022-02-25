@@ -1,6 +1,6 @@
 # Dominion
 
-:crown:
+:crown: <br />
 :crab:
 
 Generate kingdoms (card configurations) for the deck builder [Dominion][game].
