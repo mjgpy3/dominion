@@ -17,3 +17,9 @@ jobs:
         with:
           command: fmt
           args: --check
+      - name: Did we break README example?
+        uses: actions-rs/cargo@v1
+        with:
+          command: run
+          args: -- --ban-cards Witch --include-cards YoungWitch --include-expansions Base2 Renaissance --project-count 2 --hists --pretty
+      
