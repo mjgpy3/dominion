@@ -3,10 +3,18 @@ import React from "react";
 import init, * as Dominion from "./node_modules/dominion/dominion.js";
 import SuperTreeview from "react-super-treeview";
 
-function SetupGenerator({ unselectedExpansionCards, projectCounts, generate }) {
-  const [includes, setIncludes] = React.useState(unselectedExpansionCards.slice());
-  const [bans, setBans] = React.useState(unselectedExpansionCards.slice());
-  const [expansions, setExpansions] = React.useState(unselectedExpansionCards.slice());
+function SetupGenerator({
+  makeUnselectedExpansionCards,
+  projectCounts,
+  generate,
+}) {
+  const [includes, setIncludes] = React.useState(
+    makeUnselectedExpansionCards("includes")
+  );
+  const [bans, setBans] = React.useState(makeUnselectedExpansionCards("bans"));
+  const [expansions, setExpansions] = React.useState(
+    makeUnselectedExpansionCards("expansions")
+  );
   const [projectCount, setProjectCount] = React.useState(null);
   const [generated, setGenerated] = React.useState(null);
 
@@ -15,7 +23,7 @@ function SetupGenerator({ unselectedExpansionCards, projectCounts, generate }) {
   const checkedChildren = (tree) =>
     nullIfEmpty(
       tree.flatMap((exp) =>
-        exp.children.filter((v) => v.isChecked).map((v) => v.id)
+        exp.children.filter((v) => v.isChecked).map((v) => v.name)
       )
     );
 
@@ -76,7 +84,7 @@ function SetupGenerator({ unselectedExpansionCards, projectCounts, generate }) {
             generate({
               project_count: projectCount,
               include_expansions: nullIfEmpty(
-                expansions.filter((v) => v.isChecked).map((e) => e.id)
+                expansions.filter((v) => v.isChecked).map((e) => e.name)
               ),
               include_cards: checkedChildren(includes),
               ban_cards: checkedChildren(bans),
@@ -93,35 +101,20 @@ function SetupGenerator({ unselectedExpansionCards, projectCounts, generate }) {
 }
 
 init().then(() => {
-  console.log(
-    Dominion.gen_setup_js({
-      ban_cards: [],
-      include_cards: ["YoungWitch"],
-    }),
-    Dominion.kingdom_cards_js(),
-    Dominion.expansions_js(),
-    Dominion.project_counts_js()
-  );
-
-  console.log(Dominion.expansion_cards_js());
-
-  const unselectedExpansionCards = Object.entries(
-    Dominion.expansion_cards_js()
-  ).map(([exp, cards]) => ({
-    name: exp,
-    id: exp,
-    children: cards.map((card) => ({
-      name: card,
-      id: card,
-    })),
-  }));
-
-  console.log(unselectedExpansionCards);
+  const makeUnselectedExpansionCards = (idPrefix) =>
+    Object.entries(Dominion.expansion_cards_js()).map(([exp, cards]) => ({
+      name: exp,
+      id: `${idPrefix}-${exp}`,
+      children: cards.map((card) => ({
+        name: card,
+        id: `${idPrefix}-${card}`,
+      })),
+    }));
 
   const app = document.getElementById("setup-generator");
   ReactDOM.render(
     <SetupGenerator
-      unselectedExpansionCards={unselectedExpansionCards}
+      makeUnselectedExpansionCards={makeUnselectedExpansionCards}
       projectCounts={Dominion.project_counts_js()}
       generate={Dominion.gen_setup_js}
     />,
