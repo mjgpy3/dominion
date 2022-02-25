@@ -5,9 +5,18 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 strum = "0.23.0"
 strum_macros = "0.23.0"
 rand = "0.8.4"
+getrandom = { version = "0.2.5", features = ["js"] }
 clap = "3.1.0"
 chrono = "0.4.0"
+wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"] }
+serde = { version = "1.0.80", features = ["derive"] }
+serde_derive = "^1.0.59"
+serde_repr = "0.1"
+serde_json = "1.0.32"

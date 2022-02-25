@@ -1,9 +1,12 @@
 use rand::seq::SliceRandom;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use strum::IntoEnumIterator;
 use strum_macros::{EnumCount as EnumCountMacro, EnumIter, EnumString};
+use wasm_bindgen::prelude::*;
 
 #[cfg(test)]
 mod tests {
@@ -256,7 +259,18 @@ mod tests {
 
 /// A kingdom card
 #[derive(
-    EnumIter, Debug, PartialEq, EnumCountMacro, Clone, Eq, Hash, EnumString, PartialOrd, Ord,
+    EnumIter,
+    Debug,
+    PartialEq,
+    EnumCountMacro,
+    Clone,
+    Eq,
+    Hash,
+    EnumString,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
 )]
 pub enum KC {
     ActingTroupe,
@@ -556,6 +570,8 @@ impl BaseCost for KC {
     EnumString,
     PartialOrd,
     Ord,
+    Serialize,
+    Deserialize,
 )]
 pub enum Expansion {
     Base1,
@@ -876,7 +892,19 @@ impl CardTypes for KC {
 }
 
 /// A project card
-#[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, Clone, Ord, PartialOrd)]
+#[derive(
+    EnumIter,
+    Debug,
+    PartialEq,
+    EnumCountMacro,
+    Eq,
+    Hash,
+    Clone,
+    Ord,
+    PartialOrd,
+    Serialize,
+    Deserialize,
+)]
 pub enum Project {
     Academy,
     Barracks,
@@ -907,7 +935,7 @@ impl Expansions for Project {
 }
 
 /// A game's setup
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Setup {
     pub kingdom_cards: Vec<KC>,
     pub bane_card: Option<KC>,
@@ -940,15 +968,16 @@ impl Setup {
     }
 }
 
-#[derive(EnumString, Debug)]
 /// The number of projects allowed in a game
+#[derive(EnumString, Debug, Deserialize_repr, Serialize_repr)]
+#[repr(u8)]
 pub enum ProjectCount {
     #[strum(serialize = "0")]
-    NoProjects,
+    NoProjects = 0,
     #[strum(serialize = "1")]
-    OneProject,
+    OneProject = 1,
     #[strum(serialize = "2")]
-    TwoProjects,
+    TwoProjects = 2,
 }
 
 impl ProjectCount {
@@ -968,7 +997,7 @@ impl ProjectCount {
 }
 
 /// How to setup a game
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SetupConfig {
     /// Which specific expansions to include
     pub include_expansions: Option<HashSet<Expansion>>,
@@ -1020,7 +1049,7 @@ impl SetupConfig {
 
 /// Errors we may encounter when generating a setup. These are mostly due to
 /// incoherent configurations.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum GenSetupError {
     /// Asked for some number of projects but didn't supply enough expansions to
     /// choose them.
@@ -1043,6 +1072,16 @@ pub enum GenSetupError {
 
 fn expansion_set<T: Expansions>(v: &T) -> HashSet<Expansion> {
     v.expansions().into_iter().collect()
+}
+
+#[wasm_bindgen]
+pub fn gen_setup_js(config: &JsValue) -> Result<JsValue, JsValue> {
+    let config = config.into_serde().unwrap();
+    let setup = gen_setup(config);
+    match setup {
+        Ok(setup) => Ok(JsValue::from_serde(&setup).unwrap()),
+        Err(err) => Err(JsValue::from_serde(&err).unwrap()),
+    }
 }
 
 /// Generate a valid setup from options (`SetupConfig`)
