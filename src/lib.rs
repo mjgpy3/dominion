@@ -2,6 +2,7 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use strum::IntoEnumIterator;
@@ -969,7 +970,7 @@ impl Setup {
 }
 
 /// The number of projects allowed in a game
-#[derive(EnumString, Debug, Deserialize_repr, Serialize_repr)]
+#[derive(EnumString, Debug, Deserialize_repr, Serialize_repr, EnumIter)]
 #[repr(u8)]
 pub enum ProjectCount {
     #[strum(serialize = "0")]
@@ -1082,6 +1083,41 @@ pub fn gen_setup_js(config: &JsValue) -> Result<JsValue, JsValue> {
         Ok(setup) => Ok(JsValue::from_serde(&setup).unwrap()),
         Err(err) => Err(JsValue::from_serde(&err).unwrap()),
     }
+}
+
+#[wasm_bindgen]
+pub fn kingdom_cards_js() -> JsValue {
+    JsValue::from_serde(&KC::iter().collect::<Vec<_>>()).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn expansions_js() -> JsValue {
+    JsValue::from_serde(&Expansion::iter().collect::<Vec<_>>()).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn expansion_cards_js() -> JsValue {
+    let mut results: HashMap<Expansion, Vec<KC>> = HashMap::new();
+
+    for card in KC::iter() {
+        for expansion in card.expansions() {
+            match results.entry(expansion) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().push(card.clone());
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(vec![card.clone()]);
+                }
+            }
+        }
+    }
+
+    JsValue::from_serde(&results).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn project_counts_js() -> JsValue {
+    JsValue::from_serde(&ProjectCount::iter().collect::<Vec<_>>()).unwrap()
 }
 
 /// Generate a valid setup from options (`SetupConfig`)
