@@ -1140,7 +1140,7 @@ pub mod pretty {
     use super::*;
     use chrono::prelude::*;
 
-    pub fn code(name: &str, setup: &Setup) -> String {
+    pub fn code(name: String, setup: &Setup) -> String {
         let now_local = Local::now();
 
         format!(
@@ -1445,5 +1445,157 @@ pub mod hist {
 
             Hist { hist }
         }
+    }
+}
+
+pub mod game_name {
+    use super::*;
+    use rand::seq::SliceRandom;
+
+    /// E.g. "The Witch's Bane"
+    fn random_the_cards_blank(card: &KC) -> String {
+        format!("The {:?} of the {}", card, random_end())
+    }
+
+    /// E.g. "The Bane of the Witch"
+    fn random_the_blank_of_the_card(card: &KC) -> String {
+        format!("The {} of the {:?}", random_end(), card)
+    }
+
+    /// E.g. "The Witch and the Village"
+    fn random_the_card_and_the_card(card1: &KC, card2: &KC) -> String {
+        format!("The {:?} and the {:?}", card1, card2)
+    }
+
+    /// E.g. "The Witch's Village"
+    fn random_the_cards_card(card1: &KC, card2: &KC) -> String {
+        format!("The {:?}'s {:?}", card1, card2)
+    }
+
+    /// E.g. "The Witch of the Forest"
+    fn random_the_card_of_the_place(card: &KC) -> String {
+        format!("The {:?} of the {}", card, random_place())
+    }
+
+    /// E.g. "The End of the Forest"
+    fn random_the_blank_of_the_place() -> String {
+        format!("The {} of the {}", random_end(), random_place())
+    }
+
+    fn random_end() -> String {
+        let ends = vec![
+            "Adventure",
+            "Apprentice",
+            "Bane",
+            "Banishment",
+            "Captivity",
+            "Cleansing",
+            "Coffers",
+            "Coins",
+            "Copper",
+            "Crown",
+            "Curse",
+            "Deceit",
+            "Defeat",
+            "Demise",
+            "Destiny",
+            "Dismissal",
+            "End",
+            "Enigma",
+            "Entry",
+            "Err",
+            "Execution",
+            "Exit",
+            "Failing",
+            "Fate",
+            "Favor",
+            "Fettering",
+            "Flight",
+            "Foresight",
+            "Fortune",
+            "Game",
+            "Gauntlet",
+            "Help",
+            "Incident",
+            "Journey",
+            "Killing",
+            "Kinship",
+            "Loss",
+            "Love",
+            "Mystery",
+            "Nocturne",
+            "Overreach",
+            "Peace",
+            "Plight",
+            "Poverty",
+            "Prudence",
+            "Punishment",
+            "Quickening",
+            "Relief",
+            "Repose",
+            "Sacking",
+            "Screams",
+            "Surrender",
+            "Tell",
+            "Termination",
+            "Treasure",
+            "Triumph",
+            "Turn",
+            "Turning",
+            "Unfettering",
+            "Victory",
+            "Wealth",
+            "Winning",
+            "Yearning",
+            "Yells",
+            "Zeal",
+        ];
+
+        ends.choose(&mut rand::thread_rng()).unwrap().to_string()
+    }
+
+    fn random_place() -> String {
+        let places = vec![
+            "Battlefield",
+            "Battlement",
+            "Castle",
+            "Dungeon",
+            "Field",
+            "Forest",
+            "Kingdom",
+            "Mountain",
+            "Palace",
+            "Pit",
+            "Sea",
+            "Sky",
+            "Tower",
+            "Town",
+            "Village",
+            "Waste",
+            "Woods",
+        ];
+
+        places.choose(&mut rand::thread_rng()).unwrap().to_string()
+    }
+
+    pub fn random(setup: &Setup) -> String {
+        let all_cards = setup.cards();
+        let cards: Vec<_> = all_cards
+            .choose_multiple(&mut rand::thread_rng(), 2)
+            .collect();
+
+        let card1 = cards.get(0).unwrap();
+        let card2 = cards.get(1).unwrap();
+
+        let names = vec![
+            random_the_cards_blank(card1),
+            random_the_blank_of_the_card(card1),
+            random_the_card_and_the_card(card1, card2),
+            random_the_cards_card(card1, card2),
+            random_the_card_of_the_place(card1),
+            random_the_blank_of_the_place(),
+        ];
+
+        names.choose(&mut rand::thread_rng()).unwrap().to_string()
     }
 }

@@ -74,6 +74,12 @@ fn main() {
                 .help_heading("OUTPUT")
                 .help("Write histograms"),
         )
+        .arg(
+            Arg::new("output-name")
+                .long("name")
+                .help_heading("OUTPUT")
+                .help("Generate a kingdom name"),
+        )
         .get_matches();
 
     let config = dominion::SetupConfig {
@@ -89,6 +95,14 @@ fn main() {
 
     match setup {
         Ok(setup) => {
+            let name = if matches.is_present("output-name") {
+                let name = dominion::game_name::random(&setup);
+                println!("== {} ==", name);
+                name
+            } else {
+                "Game".to_string()
+            };
+
             if matches.is_present("output-pretty") {
                 println!("------------------ SETUP ------------------");
                 println!("");
@@ -106,7 +120,7 @@ fn main() {
             if matches.is_present("output-code") {
                 println!("------------------ CODE ------------------");
                 println!("");
-                println!("{}", dominion::pretty::code("Game", &setup));
+                println!("{}", dominion::pretty::code(name, &setup));
                 println!("");
             }
 
