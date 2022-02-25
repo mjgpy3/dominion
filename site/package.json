@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "build": "parcel build index.html",
-    "serve": "parcel serve index.html --open",
+    "serve": "parcel serve index.html index.js --open",
     "test": "echo \"Error: no test specified\" && exit 1",
     "fmt": "prettier -w index.js"
   },
@@ -17,6 +17,7 @@
   "dependencies": {
     "dominion": "file:../pkg",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "react-super-treeview": "^0.3.3"
   }
 }
