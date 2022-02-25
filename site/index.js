@@ -4,9 +4,9 @@ import init, * as Dominion from "./node_modules/dominion/dominion.js";
 import SuperTreeview from "react-super-treeview";
 
 function SetupGenerator({ unselectedExpansionCards, projectCounts, generate }) {
-  const [includes, setIncludes] = React.useState(unselectedExpansionCards);
-  const [bans, setBans] = React.useState(unselectedExpansionCards);
-  const [expansions, setExpansions] = React.useState(unselectedExpansionCards);
+  const [includes, setIncludes] = React.useState(unselectedExpansionCards.slice());
+  const [bans, setBans] = React.useState(unselectedExpansionCards.slice());
+  const [expansions, setExpansions] = React.useState(unselectedExpansionCards.slice());
   const [projectCount, setProjectCount] = React.useState(null);
   const [generated, setGenerated] = React.useState(null);
 
