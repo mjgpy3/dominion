@@ -8,6 +8,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - uses: icepuma/rust-action@master
+      - name: Test
+        uses: actions-rs/cargo@v1
         with:
-          args: cargo fmt -- --check && cargo test
+          command: test
