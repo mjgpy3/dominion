@@ -4,6 +4,7 @@
   "description": "",
   "scripts": {
     "build": "parcel build index.html",
+    "release": "rm -r dist && mkdir dist && npm run build",
     "serve": "parcel serve index.html index.js --open",
     "test": "echo \"Error: no test specified\" && exit 1",
     "fmt": "prettier -w index.js"
