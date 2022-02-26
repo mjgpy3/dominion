@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "build": "parcel build index.html",
-    "release": "mkdir -p dist && rm -r dist && mkdir dist && parcel build index.html --public-url https://mjgpy3.github.io/dominion/ && mv dist/* ..",
+    "release": "mkdir -p dist && mkdir -p ../docs && rm -r dist && rm -r ../docs && mkdir dist && mkdir ../docs && parcel build index.html --public-url https://mjgpy3.github.io/dominion/ && mv dist/* ../docs",
     "serve": "parcel serve index.html index.js --open",
     "test": "echo \"Error: no test specified\" && exit 1",
     "fmt": "prettier -w index.js"
