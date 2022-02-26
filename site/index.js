@@ -18,6 +18,7 @@ function SetupGenerator({
   );
   const [projectCount, setProjectCount] = React.useState(null);
   const [setup, setSetup] = React.useState(null);
+  const [error, setError] = React.useState(null);
 
   const nullIfEmpty = (vs) => (vs.length ? vs : null);
 
@@ -85,22 +86,27 @@ function SetupGenerator({
 
       <br />
       <button
-        onClick={() =>
-          setSetup(
-            generate({
-              project_count: projectCount,
-              include_expansions: nullIfEmpty(
-                expansions.filter((v) => v.isChecked).map((e) => e.name)
-              ),
-              include_cards: includedCards,
-              ban_cards: bannedCards,
-            })
-          )
-        }
+        onClick={() => {
+          try {
+            setSetup(
+              generate({
+                project_count: projectCount,
+                include_expansions: nullIfEmpty(
+                  expansions.filter((v) => v.isChecked).map((e) => e.name)
+                ),
+                include_cards: includedCards,
+                ban_cards: bannedCards,
+              })
+            );
+          } catch (e) {
+            setError(e);
+          }
+        }}
       >
         Generate!
       </button>
       <br />
+      {error && Dominion.gen_error_js(error)}
       {setup && <Setup setup={setup} cardExpansions={cardExpansions} />}
     </div>
   );
