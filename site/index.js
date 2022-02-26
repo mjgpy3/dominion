@@ -9,12 +9,16 @@ function SetupGenerator({
   generate,
   cardExpansions,
 }) {
+  const sortByName = (vs) => vs.sort((a, b) => a.name.localeCompare(b.name));
+
   const [includes, setIncludes] = React.useState(
-    makeUnselectedExpansionCards("includes")
+    sortByName(makeUnselectedExpansionCards("includes"))
   );
-  const [bans, setBans] = React.useState(makeUnselectedExpansionCards("bans"));
+  const [bans, setBans] = React.useState(
+    sortByName(makeUnselectedExpansionCards("bans"))
+  );
   const [expansions, setExpansions] = React.useState(
-    makeUnselectedExpansionCards("expansions")
+    sortByName(makeUnselectedExpansionCards("expansions"))
   );
   const [projectCount, setProjectCount] = React.useState(null);
   const [setup, setSetup] = React.useState(null);
@@ -117,8 +121,10 @@ function Setup({ setup, cardExpansions }) {
 
   const usedExpansions = new Set();
 
+  const spaces = (card) => card.replaceAll(/([A-Z])/g, " $1").trim();
+
   const formatCard = (card) =>
-    card === setup.bane_card ? `${card} (Bane)` : card;
+    card === setup.bane_card ? `${spaces(card)} (Bane)` : spaces(card);
 
   setup.kingdom_cards.forEach((kc) => {
     const expansions = cardExpansions[kc].sort().join("/");
