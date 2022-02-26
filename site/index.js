@@ -28,9 +28,12 @@ function SetupGenerator({
       )
     );
 
+  const includedCards = checkedChildren(includes);
+  const bannedCards = checkedChildren(bans);
+
   return (
     <div>
-      <h1>Include Cards</h1>
+      <h1>Include Cards {includedCards && '(' + includedCards.join(', ') + ')'}</h1>
       <SuperTreeview
         isDeletable={() => false}
         isCheckable={(_, depth) => depth > 0}
@@ -38,7 +41,7 @@ function SetupGenerator({
         data={includes}
         onUpdateCb={setIncludes}
       />
-      <h1>Ban Cards</h1>
+      <h1>Ban Cards {bannedCards && '(' + bannedCards.join(', ') + ')'}</h1>
       <SuperTreeview
         isDeletable={() => false}
         isCheckable={(_, depth) => depth > 0}
@@ -62,7 +65,7 @@ function SetupGenerator({
         name="project-count"
         checked={projectCount === null}
       />
-      <label for="random">Random (from expansions)</label>
+      <label htmlFor="random">Random (from expansions)</label>
 
       {projectCounts.map((count) => (
         <>
@@ -74,7 +77,7 @@ function SetupGenerator({
             name="project-count"
             checked={projectCount === count}
           />
-          <label for={`count-${count}`}>{count}</label>
+          <label htmlFor={`count-${count}`}>{count}</label>
         </>
       ))}
 
@@ -87,8 +90,8 @@ function SetupGenerator({
               include_expansions: nullIfEmpty(
                 expansions.filter((v) => v.isChecked).map((e) => e.name)
               ),
-              include_cards: checkedChildren(includes),
-              ban_cards: checkedChildren(bans),
+              include_cards: includedCards,
+              ban_cards: bannedCards,
             })
           )
         }
