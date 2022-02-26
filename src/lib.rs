@@ -620,7 +620,13 @@ impl Expansions for KC {
             | KC::Harem
             | KC::Nobles => vec![Expansion::Intrigue2],
 
-            KC::Harbinger | KC::Vassal | KC::Sentry | KC::Poacher | KC::Merchant | KC::Artisan => {
+            KC::Harbinger
+            | KC::Vassal
+            | KC::Sentry
+            | KC::Poacher
+            | KC::Merchant
+            | KC::Artisan
+            | KC::Bandit => {
                 vec![Expansion::Base2]
             }
 
@@ -636,7 +642,6 @@ impl Expansions for KC {
             | KC::Remodel
             | KC::Smithy
             | KC::ThroneRoom
-            | KC::Bandit
             | KC::CouncilRoom
             | KC::Festival
             | KC::Laboratory

@@ -7,6 +7,7 @@ function SetupGenerator({
   makeUnselectedExpansionCards,
   projectCounts,
   generate,
+  cardExpansions,
 }) {
   const [includes, setIncludes] = React.useState(
     makeUnselectedExpansionCards("includes")
@@ -16,7 +17,7 @@ function SetupGenerator({
     makeUnselectedExpansionCards("expansions")
   );
   const [projectCount, setProjectCount] = React.useState(null);
-  const [generated, setGenerated] = React.useState(null);
+  const [setup, setSetup] = React.useState(null);
 
   const nullIfEmpty = (vs) => (vs.length ? vs : null);
 
@@ -80,7 +81,7 @@ function SetupGenerator({
       <br />
       <button
         onClick={() =>
-          setGenerated(
+          setSetup(
             generate({
               project_count: projectCount,
               include_expansions: nullIfEmpty(
@@ -95,14 +96,27 @@ function SetupGenerator({
         Generate!
       </button>
       <br />
-      <pre>{generated && JSON.stringify(generated, null, 2)}</pre>
+      <pre>{setup && JSON.stringify(setup, null, 2)}</pre>
     </div>
   );
 }
 
 init().then(() => {
+  const expansionCards = Dominion.expansion_cards_js();
+  const cardExpansions = Object.entries(expansionCards)
+    .flatMap(([expansion, cards]) => cards.map((card) => [card, expansion]))
+    .reduce(
+      (res, [card, expansion]) => ({
+        ...res,
+        [card]: (res[card] || []).concat(expansion),
+      }),
+      {}
+    );
+
+    console.log(cardExpansions)
+
   const makeUnselectedExpansionCards = (idPrefix) =>
-    Object.entries(Dominion.expansion_cards_js()).map(([exp, cards]) => ({
+    Object.entries(expansionCards).map(([exp, cards]) => ({
       name: exp,
       id: `${idPrefix}-${exp}`,
       children: cards.map((card) => ({
@@ -115,6 +129,7 @@ init().then(() => {
   ReactDOM.render(
     <SetupGenerator
       makeUnselectedExpansionCards={makeUnselectedExpansionCards}
+      cardExpansions={cardExpansions}
       projectCounts={Dominion.project_counts_js()}
       generate={Dominion.gen_setup_js}
     />,
