@@ -185,7 +185,7 @@ init().then(() => {
 
   const app = document.getElementById("setup-generator");
   ReactDOM.render(
-    <SetupGenerator
+          <SetupGenerator
       makeUnselectedExpansionCards={makeUnselectedExpansionCards}
       cardExpansions={cardExpansions}
       projectCounts={Dominion.project_counts_js()}
