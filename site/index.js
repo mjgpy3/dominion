@@ -33,7 +33,9 @@ function SetupGenerator({
 
   return (
     <div>
-      <h1>Include Cards {includedCards && '(' + includedCards.join(', ') + ')'}</h1>
+      <h1>
+        Include Cards {includedCards && "(" + includedCards.join(", ") + ")"}
+      </h1>
       <SuperTreeview
         isDeletable={() => false}
         isCheckable={(_, depth) => depth > 0}
@@ -41,7 +43,7 @@ function SetupGenerator({
         data={includes}
         onUpdateCb={setIncludes}
       />
-      <h1>Ban Cards {bannedCards && '(' + bannedCards.join(', ') + ')'}</h1>
+      <h1>Ban Cards {bannedCards && "(" + bannedCards.join(", ") + ")"}</h1>
       <SuperTreeview
         isDeletable={() => false}
         isCheckable={(_, depth) => depth > 0}
@@ -99,8 +101,51 @@ function SetupGenerator({
         Generate!
       </button>
       <br />
-      <pre>{setup && JSON.stringify(setup, null, 2)}</pre>
+      {setup && <Setup setup={setup} cardExpansions={cardExpansions} />}
     </div>
+  );
+}
+
+function Setup({ setup, cardExpansions }) {
+  const cardsByExpansion = {};
+
+  const usedExpansions = new Set();
+
+  const formatCard = (card) =>
+    card === setup.bane_card ? `${card} (Bane)` : card;
+
+  setup.kingdom_cards.forEach((kc) => {
+    const expansions = cardExpansions[kc].sort().join("/");
+    usedExpansions.add(expansions);
+    cardsByExpansion[expansions] = (cardsByExpansion[expansions] || [])
+      .concat([kc])
+      .sort();
+  });
+
+  const usedExpansionsSorted = Array.from(usedExpansions).sort();
+
+  return (
+    <>
+      <h1>Kingdom</h1>
+      <div style={{ display: "grid", "grid-template-columns": "auto auto" }}>
+        {usedExpansionsSorted.map((expansion) => (
+          <>
+            <div>{expansion}</div>
+            <div>{cardsByExpansion[expansion].map(formatCard).join(", ")}</div>
+          </>
+        ))}
+      </div>
+      {setup.project_cards.length > 0 && (
+        <>
+          <h1>Projects</h1>
+          <ul>
+            {setup.project_cards.map((project) => (
+              <li>{project}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
   );
 }
 
@@ -115,8 +160,6 @@ init().then(() => {
       }),
       {}
     );
-
-    console.log(cardExpansions)
 
   const makeUnselectedExpansionCards = (idPrefix) =>
     Object.entries(expansionCards).map(([exp, cards]) => ({
