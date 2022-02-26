@@ -620,7 +620,13 @@ impl Expansions for KC {
             | KC::Harem
             | KC::Nobles => vec![Expansion::Intrigue2],
 
-            KC::Harbinger | KC::Vassal | KC::Sentry | KC::Poacher | KC::Merchant | KC::Artisan => {
+            KC::Harbinger
+            | KC::Vassal
+            | KC::Sentry
+            | KC::Poacher
+            | KC::Merchant
+            | KC::Artisan
+            | KC::Bandit => {
                 vec![Expansion::Base2]
             }
 
@@ -636,7 +642,6 @@ impl Expansions for KC {
             | KC::Remodel
             | KC::Smithy
             | KC::ThroneRoom
-            | KC::Bandit
             | KC::CouncilRoom
             | KC::Festival
             | KC::Laboratory
@@ -1050,7 +1055,7 @@ impl SetupConfig {
 
 /// Errors we may encounter when generating a setup. These are mostly due to
 /// incoherent configurations.
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum GenSetupError {
     /// Asked for some number of projects but didn't supply enough expansions to
     /// choose them.
@@ -1403,6 +1408,24 @@ Expansions' cards:
                 "S.baneWithProjects {:?} {:?} {:?}",
                 bane, setup.project_cards, setup.kingdom_cards
             ),
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn gen_error_js(json: &JsValue) -> String {
+        let err = json.into_serde().unwrap();
+        match err {
+            GenSetupError::CouldNotSatisfyProjectsFromExpansions => {
+                "The requested project count could not be satisfied! Ensure you're not specifying expansions which preclude projects.".to_string()
+            }
+
+            GenSetupError::CouldNotSatisfyKingdomCards => "Could not pick 10 kingdom cards! Ensure your filters don't over-limit cards.".to_string(),
+
+            GenSetupError::CouldNotSatisfyBaneCard => "Could not pick a bane card! Ensure your filters don't over-limit cards.".to_string(),
+
+            GenSetupError::IntersectingCardBansAndIncludes(cards) => format!("I can't ban and include cards! The following exist in the ban and include lists: {:?}", cards),
+
+            GenSetupError::TooManyCardsIncluded => "Too many cards were asked to be included! I currently can't generate a kingdom with more than 10 cards.".to_string(),
         }
     }
 

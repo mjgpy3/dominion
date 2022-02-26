@@ -7,6 +7,7 @@ function SetupGenerator({
   makeUnselectedExpansionCards,
   projectCounts,
   generate,
+  cardExpansions,
 }) {
   const [includes, setIncludes] = React.useState(
     makeUnselectedExpansionCards("includes")
@@ -16,7 +17,8 @@ function SetupGenerator({
     makeUnselectedExpansionCards("expansions")
   );
   const [projectCount, setProjectCount] = React.useState(null);
-  const [generated, setGenerated] = React.useState(null);
+  const [setup, setSetup] = React.useState(null);
+  const [error, setError] = React.useState(null);
 
   const nullIfEmpty = (vs) => (vs.length ? vs : null);
 
@@ -27,9 +29,14 @@ function SetupGenerator({
       )
     );
 
+  const includedCards = checkedChildren(includes);
+  const bannedCards = checkedChildren(bans);
+
   return (
     <div>
-      <h1>Include Cards</h1>
+      <h1>
+        Include Cards {includedCards && "(" + includedCards.join(", ") + ")"}
+      </h1>
       <SuperTreeview
         isDeletable={() => false}
         isCheckable={(_, depth) => depth > 0}
@@ -37,7 +44,7 @@ function SetupGenerator({
         data={includes}
         onUpdateCb={setIncludes}
       />
-      <h1>Ban Cards</h1>
+      <h1>Ban Cards {bannedCards && "(" + bannedCards.join(", ") + ")"}</h1>
       <SuperTreeview
         isDeletable={() => false}
         isCheckable={(_, depth) => depth > 0}
@@ -61,7 +68,7 @@ function SetupGenerator({
         name="project-count"
         checked={projectCount === null}
       />
-      <label for="random">Random (from expansions)</label>
+      <label htmlFor="random">Random (from expansions)</label>
 
       {projectCounts.map((count) => (
         <>
@@ -73,36 +80,95 @@ function SetupGenerator({
             name="project-count"
             checked={projectCount === count}
           />
-          <label for={`count-${count}`}>{count}</label>
+          <label htmlFor={`count-${count}`}>{count}</label>
         </>
       ))}
 
       <br />
       <button
-        onClick={() =>
-          setGenerated(
-            generate({
-              project_count: projectCount,
-              include_expansions: nullIfEmpty(
-                expansions.filter((v) => v.isChecked).map((e) => e.name)
-              ),
-              include_cards: checkedChildren(includes),
-              ban_cards: checkedChildren(bans),
-            })
-          )
-        }
+        onClick={() => {
+          try {
+            setSetup(
+              generate({
+                project_count: projectCount,
+                include_expansions: nullIfEmpty(
+                  expansions.filter((v) => v.isChecked).map((e) => e.name)
+                ),
+                include_cards: includedCards,
+                ban_cards: bannedCards,
+              })
+            );
+          } catch (e) {
+            setError(e);
+          }
+        }}
       >
         Generate!
       </button>
       <br />
-      <pre>{generated && JSON.stringify(generated, null, 2)}</pre>
+      {error && Dominion.gen_error_js(error)}
+      {setup && <Setup setup={setup} cardExpansions={cardExpansions} />}
     </div>
   );
 }
 
+function Setup({ setup, cardExpansions }) {
+  const cardsByExpansion = {};
+
+  const usedExpansions = new Set();
+
+  const formatCard = (card) =>
+    card === setup.bane_card ? `${card} (Bane)` : card;
+
+  setup.kingdom_cards.forEach((kc) => {
+    const expansions = cardExpansions[kc].sort().join("/");
+    usedExpansions.add(expansions);
+    cardsByExpansion[expansions] = (cardsByExpansion[expansions] || [])
+      .concat([kc])
+      .sort();
+  });
+
+  const usedExpansionsSorted = Array.from(usedExpansions).sort();
+
+  return (
+    <>
+      <h1>Kingdom</h1>
+      <div style={{ display: "grid", "grid-template-columns": "auto auto" }}>
+        {usedExpansionsSorted.map((expansion) => (
+          <>
+            <div>{expansion}</div>
+            <div>{cardsByExpansion[expansion].map(formatCard).join(", ")}</div>
+          </>
+        ))}
+      </div>
+      {setup.project_cards.length > 0 && (
+        <>
+          <h1>Projects</h1>
+          <ul>
+            {setup.project_cards.map((project) => (
+              <li>{project}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
 init().then(() => {
+  const expansionCards = Dominion.expansion_cards_js();
+  const cardExpansions = Object.entries(expansionCards)
+    .flatMap(([expansion, cards]) => cards.map((card) => [card, expansion]))
+    .reduce(
+      (res, [card, expansion]) => ({
+        ...res,
+        [card]: (res[card] || []).concat(expansion),
+      }),
+      {}
+    );
+
   const makeUnselectedExpansionCards = (idPrefix) =>
-    Object.entries(Dominion.expansion_cards_js()).map(([exp, cards]) => ({
+    Object.entries(expansionCards).map(([exp, cards]) => ({
       name: exp,
       id: `${idPrefix}-${exp}`,
       children: cards.map((card) => ({
@@ -115,6 +181,7 @@ init().then(() => {
   ReactDOM.render(
     <SetupGenerator
       makeUnselectedExpansionCards={makeUnselectedExpansionCards}
+      cardExpansions={cardExpansions}
       projectCounts={Dominion.project_counts_js()}
       generate={Dominion.gen_setup_js}
     />,
