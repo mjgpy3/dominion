@@ -5,6 +5,12 @@
 
 Generate kingdoms (card configurations) for the deck builder [Dominion][game].
 
+## Site
+
+The [site branch](https://github.com/mjgpy3/dominion/tree/site) is automatically deployed to https://mjgpy3.github.io/dominion/.
+
+This site is using `wasm-pack` to generate WASM code from the same rust code that powers the binary.
+
 ## Running?
 
 No nifty binaries, use `cargo run -- --help` to see the available options.
