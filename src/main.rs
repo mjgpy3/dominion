@@ -31,6 +31,15 @@ fn main() {
                 .possible_values(["0", "1", "2"]),
         )
         .arg(
+            Arg::new("bane-count")
+                .long("bane-count")
+                .takes_value(true)
+                .value_name("NUMBER")
+                .help_heading("LIMITING")
+                .help("Include a number of bane expansion cards (experimental/custom)")
+                .possible_values(["0", "1", "2", "3"]),
+        )
+        .arg(
             Arg::new("ban-cards")
                 .short('b')
                 .long("ban-cards")
@@ -89,6 +98,9 @@ fn main() {
         project_count: matches
             .value_of("project-count")
             .map(|_| matches.value_of_t_or_exit("project-count")),
+        bane_count: matches
+            .value_of("bane-count")
+            .map(|_| matches.value_of_t_or_exit("bane-count")),
     };
 
     let setup = dominion::gen_setup(config);

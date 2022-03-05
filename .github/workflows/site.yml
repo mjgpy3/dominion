@@ -1,0 +1,36 @@
+name: Dominion Site
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: site
+      - name: Merge master
+        uses: devmasx/merge-branch@master
+        with:
+          type: now
+          from_branch: master
+          target_branch: site
+          github_token: ${{ github.token }}
+      - name: Build WASM
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          wasm-pack build --target web
+      - name: Build Site
+        run: |
+          cd site
+          npm install
+          npm run release
+      - name: Commit
+        run: |
+          git add .
+          git commit -m "Cut site release"
+          git push

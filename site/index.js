@@ -6,17 +6,23 @@ import SuperTreeview from "react-super-treeview";
 function SetupGenerator({
   makeUnselectedExpansionCards,
   projectCounts,
+  baneCounts,
   generate,
   cardExpansions,
 }) {
+  const sortByName = (vs) => vs.sort((a, b) => a.name.localeCompare(b.name));
+
   const [includes, setIncludes] = React.useState(
-    makeUnselectedExpansionCards("includes")
+    sortByName(makeUnselectedExpansionCards("includes"))
   );
-  const [bans, setBans] = React.useState(makeUnselectedExpansionCards("bans"));
+  const [bans, setBans] = React.useState(
+    sortByName(makeUnselectedExpansionCards("bans"))
+  );
   const [expansions, setExpansions] = React.useState(
-    makeUnselectedExpansionCards("expansions")
+    sortByName(makeUnselectedExpansionCards("expansions"))
   );
   const [projectCount, setProjectCount] = React.useState(null);
+  const [baneCount, setBaneCount] = React.useState(null);
   const [setup, setSetup] = React.useState(null);
   const [error, setError] = React.useState(null);
 
@@ -84,6 +90,21 @@ function SetupGenerator({
         </>
       ))}
 
+      <h1>Bane Count (Custom/Experimental Expansion)</h1>
+      {baneCounts.map((count) => (
+        <>
+          <input
+            type="radio"
+            value={count}
+            id={`bane-count-${count}`}
+            onChange={() => setBaneCount(count)}
+            name="bane-count"
+            checked={baneCount === count}
+          />
+          <label htmlFor={`bane-count-${count}`}>{count}</label>
+        </>
+      ))}
+
       <br />
       <button
         onClick={() => {
@@ -91,6 +112,7 @@ function SetupGenerator({
             setSetup(
               generate({
                 project_count: projectCount,
+                bane_count: baneCount,
                 include_expansions: nullIfEmpty(
                   expansions.filter((v) => v.isChecked).map((e) => e.name)
                 ),
@@ -117,8 +139,18 @@ function Setup({ setup, cardExpansions }) {
 
   const usedExpansions = new Set();
 
-  const formatCard = (card) =>
-    card === setup.bane_card ? `${card} (Bane)` : card;
+  const spaces = (card) => card.replaceAll(/([A-Z])/g, " $1").trim();
+
+  const formatCard = (card) => {
+    if (card === setup.bane_card) {
+      return `${spaces(card)} (Bane)`;
+    }
+    if (card in setup.bane_cards) {
+      return `${spaces(card)} (${setup.bane_cards[card]})`;
+    }
+
+    return spaces(card);
+  };
 
   setup.kingdom_cards.forEach((kc) => {
     const expansions = cardExpansions[kc].sort().join("/");
@@ -183,6 +215,7 @@ init().then(() => {
       makeUnselectedExpansionCards={makeUnselectedExpansionCards}
       cardExpansions={cardExpansions}
       projectCounts={Dominion.project_counts_js()}
+      baneCounts={Dominion.bane_counts_js()}
       generate={Dominion.gen_setup_js}
     />,
     app
