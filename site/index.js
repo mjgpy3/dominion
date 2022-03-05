@@ -146,7 +146,7 @@ function Setup({ setup, cardExpansions }) {
       return `${spaces(card)} (Bane)`;
     }
     if (card in setup.bane_cards) {
-      return `${spaces(card)} (${setup.bane_cards[card]})`;
+      return `${spaces(card)} (${spaces(setup.bane_cards[card])})`;
     }
 
     return spaces(card);
