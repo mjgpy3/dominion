@@ -48,6 +48,7 @@ mod tests {
             project_count: Some(ProjectCount::OneProject),
             include_cards: None,
             ban_cards: None,
+            bane_count: None,
         })
         .unwrap_err();
 
@@ -68,6 +69,7 @@ mod tests {
             project_count: None,
             include_cards: None,
             ban_cards: Some(HashSet::from([KC::Witch, KC::Militia])),
+            bane_count: None,
         })
         .unwrap();
 
@@ -115,6 +117,7 @@ mod tests {
             project_count: None,
             include_cards: None,
             ban_cards: Some(HashSet::from([KC::YoungWitch])),
+            bane_count: None,
         })
         .unwrap();
 
@@ -130,6 +133,7 @@ mod tests {
             project_count: None,
             include_cards: None,
             ban_cards: Some(HashSet::from([banned_card.clone()])),
+            bane_count: None,
         })
         .unwrap();
 
@@ -160,6 +164,7 @@ mod tests {
             project_count: None,
             include_cards: Some(HashSet::from([included_card.clone()])),
             ban_cards: Some(HashSet::from([KC::YoungWitch])),
+            bane_count: None,
         })
         .unwrap();
 
@@ -175,6 +180,7 @@ mod tests {
             project_count: None,
             include_cards: Some(HashSet::from([included_card.clone()])),
             ban_cards: None,
+            bane_count: None,
         })
         .unwrap();
 
@@ -197,6 +203,7 @@ mod tests {
             project_count: None,
             include_cards: Some(HashSet::from([card.clone()])),
             ban_cards: Some(HashSet::from([card.clone()])),
+            bane_count: None,
         })
         .unwrap_err();
 
@@ -213,6 +220,7 @@ mod tests {
             project_count: None,
             include_cards: None,
             ban_cards: Some(KC::iter().collect()),
+            bane_count: None,
         })
         .unwrap_err();
 
@@ -231,10 +239,99 @@ mod tests {
                 KC::FortuneTeller,
                 KC::Menagerie,
             ])),
+            bane_count: None,
         })
         .unwrap_err();
 
         assert_eq!(err, GenSetupError::CouldNotSatisfyBaneCard);
+    }
+
+    #[test]
+    fn forcing_project_count_returns_that_many_projects() {
+        for (expected, project_count) in ProjectCount::iter().enumerate() {
+            let setup = gen_setup(SetupConfig {
+                include_expansions: None,
+                project_count: Some(project_count),
+                include_cards: None,
+                ban_cards: None,
+                bane_count: None,
+            })
+            .unwrap();
+
+            assert_eq!(setup.project_cards.len(), expected);
+        }
+    }
+
+    #[test]
+    fn forcing_bane_count_returns_that_many_bane_cards() {
+        for (expected, bane_count) in BaneCount::iter().enumerate() {
+            let setup = gen_setup(SetupConfig {
+                include_expansions: None,
+                project_count: None,
+                include_cards: None,
+                ban_cards: None,
+                bane_count: Some(bane_count),
+            })
+            .unwrap();
+
+            assert_eq!(setup.bane_cards.len(), expected);
+        }
+    }
+
+    #[test]
+    fn bane_cards_never_intersect_the_actual_young_witch_bane_card() {
+        let setup = gen_setup(SetupConfig {
+            include_expansions: None,
+            project_count: None,
+            include_cards: Some(HashSet::from([KC::YoungWitch])),
+            ban_cards: None,
+            bane_count: Some(BaneCount::ThreeBanes),
+        })
+        .unwrap();
+
+        let bane = setup.bane_card.unwrap();
+        let banes = setup.bane_cards;
+
+        assert!(!banes.contains_key(&bane));
+    }
+
+    #[test]
+    fn bane_cards_are_distinct() {
+        let setup = gen_setup(SetupConfig {
+            include_expansions: None,
+            project_count: None,
+            include_cards: None,
+            ban_cards: None,
+            bane_count: Some(BaneCount::ThreeBanes),
+        })
+        .unwrap();
+
+        let banes = &setup.bane_cards.values();
+        let uniq_banes: HashSet<_> = banes.clone().collect();
+
+        assert_eq!(banes.len(), uniq_banes.len());
+    }
+
+    #[test]
+    fn bane_cards_are_always_a_subset_of_kingdom_cards() {
+        let setup = gen_setup(SetupConfig {
+            include_expansions: None,
+            project_count: None,
+            include_cards: None,
+            ban_cards: None,
+            bane_count: Some(BaneCount::ThreeBanes),
+        })
+        .unwrap();
+
+        for bane_kingdom_card in setup.bane_cards.keys() {
+            assert!(setup.kingdom_cards.contains(&bane_kingdom_card));
+        }
+    }
+
+    #[test]
+    fn when_bane_count_is_not_give_no_banes_come_back() {
+        let setup = gen_setup(SetupConfig::none()).unwrap();
+        assert_eq!(setup.bane_cards.len(), 0);
     }
 
     fn gen_expansion() -> Expansion {
@@ -738,6 +835,46 @@ impl Expansions for KC {
     }
 }
 
+/// My custom "Bane" cards
+#[derive(
+    EnumIter,
+    Debug,
+    PartialEq,
+    EnumCountMacro,
+    Eq,
+    Hash,
+    std::clone::Clone,
+    EnumString,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+)]
+pub enum BaneCard {
+    Bargain,
+    BuyAndBuy,
+    CoverOfDarkness,
+    CursedHeirloom,
+    Exchange,
+    Flank,
+    FoolsGold,
+    Fortification,
+    Frontier,
+    Gambler,
+    MagicShield,
+    Opportune,
+    PlagueCart,
+    Rebate,
+    Sacrifice,
+    SecretPlans,
+    SilverMine,
+    Throne,
+    TreasuryKey,
+    Tunnel,
+    Vault,
+    Zebra,
+}
+
 /// Card's type -- how it functions
 #[derive(EnumIter, Debug, PartialEq, EnumCountMacro, Eq, Hash, Clone, PartialOrd, Ord)]
 pub enum CardType {
@@ -946,14 +1083,21 @@ pub struct Setup {
     pub kingdom_cards: Vec<KC>,
     pub bane_card: Option<KC>,
     pub project_cards: Vec<Project>,
+    pub bane_cards: HashMap<KC, BaneCard>,
 }
 
 impl Setup {
-    pub fn new(kingdom_cards: Vec<KC>, bane_card: Option<KC>, project_cards: Vec<Project>) -> Self {
+    pub fn new(
+        kingdom_cards: Vec<KC>,
+        bane_card: Option<KC>,
+        project_cards: Vec<Project>,
+        bane_cards: HashMap<KC, BaneCard>,
+    ) -> Self {
         Self {
             kingdom_cards,
             bane_card,
             project_cards,
+            bane_cards,
         }
     }
 
@@ -962,6 +1106,7 @@ impl Setup {
             kingdom_cards: other_kingdom,
             bane_card: Some(bane),
             project_cards: vec![],
+            bane_cards: HashMap::new(),
         }
     }
 
@@ -1002,6 +1147,37 @@ impl ProjectCount {
     }
 }
 
+/// The number of custom bane cards allowed in a game
+#[derive(EnumString, Debug, Deserialize_repr, Serialize_repr, EnumIter)]
+#[repr(u8)]
+pub enum BaneCount {
+    #[strum(serialize = "0")]
+    NoBanes = 0,
+    #[strum(serialize = "1")]
+    OneBane = 1,
+    #[strum(serialize = "2")]
+    TwoBanes = 2,
+    #[strum(serialize = "3")]
+    ThreeBanes = 3,
+}
+
+impl BaneCount {
+    /// Convert enum to actual count
+    ///
+    ///```
+    ///let count = dominion::BaneCount::OneBane.count();
+    ///assert_eq!(count, 1);
+    ///```
+    pub fn count(&self) -> usize {
+        match self {
+            BaneCount::NoBanes => 0,
+            BaneCount::OneBane => 1,
+            BaneCount::TwoBanes => 2,
+            BaneCount::ThreeBanes => 3,
+        }
+    }
+}
+
 /// How to setup a game
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetupConfig {
@@ -1019,6 +1195,10 @@ pub struct SetupConfig {
     /// If expansions are provided and we can't pick enough projects to satisfy
     /// this count, we'll return an error
     pub project_count: Option<ProjectCount>,
+
+    /// How many bane cards to include (for random of count)
+    /// The "Bane Expansion" is my custom expansion
+    pub bane_count: Option<BaneCount>,
 }
 
 impl SetupConfig {
@@ -1029,6 +1209,7 @@ impl SetupConfig {
             ban_cards: None,
             include_cards: None,
             project_count: None,
+            bane_count: None,
         }
     }
 
@@ -1039,6 +1220,7 @@ impl SetupConfig {
             ban_cards: None,
             include_cards: None,
             project_count: None,
+            bane_count: None,
         }
     }
 
@@ -1049,6 +1231,7 @@ impl SetupConfig {
             ban_cards: None,
             include_cards: Some(cards),
             project_count: None,
+            bane_count: None,
         }
     }
 }
@@ -1123,6 +1306,11 @@ pub fn expansion_cards_js() -> JsValue {
 #[wasm_bindgen]
 pub fn project_counts_js() -> JsValue {
     JsValue::from_serde(&ProjectCount::iter().collect::<Vec<_>>()).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn bane_counts_js() -> JsValue {
+    JsValue::from_serde(&BaneCount::iter().collect::<Vec<_>>()).unwrap()
 }
 
 /// Generate a valid setup from options (`SetupConfig`)
@@ -1208,10 +1396,24 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
         }
     }
 
+    let bane_count = config.bane_count.map(|bc| bc.count()).unwrap_or(0);
+
+    let bane_cards = kingdom_cards
+        .choose_multiple(&mut rng, bane_count)
+        .cloned()
+        .zip(
+            BaneCard::iter()
+                .collect::<Vec<_>>()
+                .choose_multiple(&mut rng, bane_count)
+                .cloned(),
+        )
+        .collect();
+
     Ok(Setup {
         project_cards,
         kingdom_cards,
         bane_card,
+        bane_cards,
     })
 }
 
@@ -1240,10 +1442,13 @@ pub mod pretty {
         )
     }
 
-    fn format_card(card: &KC, bane: &Option<KC>) -> String {
-        match bane {
-            Some(c) => format!(" - {:?} {}", card, if c == card { " (Bane)" } else { "" }),
-            None => format!(" - {:?}", card),
+    fn format_card(card: &KC, setup: &Setup) -> String {
+        match &setup.bane_cards.get(&card) {
+            Some(b) => format!(" - {:?} ({:?})", card, b),
+            None => match &setup.bane_card {
+                Some(c) => format!(" - {:?} {}", card, if c == card { " (Bane)" } else { "" }),
+                None => format!(" - {:?}", card),
+            },
         }
     }
 
@@ -1266,9 +1471,9 @@ pub mod pretty {
                 .entry(exp)
                 .and_modify(|s| {
                     s.push('\n');
-                    s.push_str(&format_card(&card, &setup.bane_card))
+                    s.push_str(&format_card(&card, &setup))
                 })
-                .or_insert(format_card(&card, &setup.bane_card));
+                .or_insert(format_card(&card, &setup));
         }
 
         let mut kingdom_cards = String::new();
