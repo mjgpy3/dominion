@@ -1,4 +1,4 @@
-name: Dominion Site
+name: Build Site
 
 on:
   push:
