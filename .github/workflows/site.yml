@@ -31,6 +31,6 @@ jobs:
         run: |
           git config user.name "Release Site"
           git config user.email "<>"
-          git add .
+          git add -A
           git commit -m "Cut site release"
           git push
