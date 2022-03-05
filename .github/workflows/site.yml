@@ -12,16 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: master
-      - name: Merge master
-        uses: devmasx/merge-branch@master
-        with:
-          type: now
-          from_branch: master
-          target_branch: site
-          github_token: ${{ github.token }}
-      - uses: actions/checkout@v2
-        with:
           ref: site
       - name: Merge master
         uses: devmasx/merge-branch@master
