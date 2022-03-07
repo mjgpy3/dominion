@@ -145,6 +145,11 @@ function Setup({ setup, cardExpansions }) {
     if (card === setup.bane_card) {
       return `${spaces(card)} (Bane)`;
     }
+    if (card in setup.bane_cards && setup.bane_cards[card] === "Zebra") {
+      return `${spaces(card)} (${spaces(setup.bane_cards[card])} with ${
+        setup.second_zebra
+      })`;
+    }
     if (card in setup.bane_cards) {
       return `${spaces(card)} (${spaces(setup.bane_cards[card])})`;
     }

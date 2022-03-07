@@ -64,7 +64,6 @@ Renaissance
  - CropRotation
  - Pageant
 
-
 ------------------ HISTS ------------------
 
 Cards' Costs:

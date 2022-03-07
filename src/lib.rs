@@ -329,7 +329,30 @@ mod tests {
     }
 
     #[test]
-    fn when_bane_count_is_not_give_no_banes_come_back() {
+    fn a_zebra_implies_a_new_kingdom_card_as_the_second_zebra() {
+        let setup = gen_setup(SetupConfig {
+            include_expansions: None,
+            project_count: None,
+            include_cards: None,
+            ban_cards: None,
+            bane_count: Some(BaneCount::ThreeBanes),
+        })
+        .unwrap();
+
+        if setup
+            .bane_cards
+            .values()
+            .cloned()
+            .collect::<Vec<_>>()
+            .contains(&BaneCard::Zebra)
+        {
+            assert!(setup.second_zebra.is_some());
+            assert!(!setup.cards().contains(&setup.second_zebra.unwrap()));
+        }
+    }
+
+    #[test]
+    fn when_bane_count_is_not_given_no_banes_come_back() {
         let setup = gen_setup(SetupConfig::none()).unwrap();
         assert_eq!(setup.bane_cards.len(), 0);
     }
@@ -1084,6 +1107,7 @@ pub struct Setup {
     pub bane_card: Option<KC>,
     pub project_cards: Vec<Project>,
     pub bane_cards: HashMap<KC, BaneCard>,
+    pub second_zebra: Option<KC>,
 }
 
 impl Setup {
@@ -1092,12 +1116,14 @@ impl Setup {
         bane_card: Option<KC>,
         project_cards: Vec<Project>,
         bane_cards: HashMap<KC, BaneCard>,
+        second_zebra: Option<KC>,
     ) -> Self {
         Self {
             kingdom_cards,
             bane_card,
             project_cards,
             bane_cards,
+            second_zebra,
         }
     }
 
@@ -1107,6 +1133,7 @@ impl Setup {
             bane_card: Some(bane),
             project_cards: vec![],
             bane_cards: HashMap::new(),
+            second_zebra: None,
         }
     }
 
@@ -1250,6 +1277,9 @@ pub enum GenSetupError {
     /// Filtered in such a way as to not allow us to pick a bane card.
     CouldNotSatisfyBaneCard,
 
+    /// Filtered in such a way as to not allow us to pick a second zebra card.
+    CouldNotSatisfySecondZebra,
+
     /// Asked to ban and include one or more cards.
     IntersectingCardBansAndIncludes(Vec<KC>),
 
@@ -1382,14 +1412,12 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
         return Err(GenSetupError::CouldNotSatisfyKingdomCards);
     }
 
-    let mut bane_card: Option<KC> = None;
+    let mut bane_card = None;
+
+    let mut remaining_possible_kingdom_cards = possible_kingdom_cards.iter().skip(random_needed);
 
     if kingdom_cards.contains(&KC::YoungWitch) {
-        bane_card = possible_kingdom_cards
-            .iter()
-            .skip(random_needed)
-            .next()
-            .cloned();
+        bane_card = remaining_possible_kingdom_cards.next().cloned();
 
         if bane_card.is_none() {
             return Err(GenSetupError::CouldNotSatisfyBaneCard);
@@ -1398,22 +1426,35 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
 
     let bane_count = config.bane_count.map(|bc| bc.count()).unwrap_or(0);
 
-    let bane_cards = kingdom_cards
+    let all_banes = BaneCard::iter().collect::<Vec<_>>();
+
+    let bane_cards: HashMap<KC, BaneCard> = kingdom_cards
         .choose_multiple(&mut rng, bane_count)
         .cloned()
-        .zip(
-            BaneCard::iter()
-                .collect::<Vec<_>>()
-                .choose_multiple(&mut rng, bane_count)
-                .cloned(),
-        )
+        .zip(all_banes.choose_multiple(&mut rng, bane_count).cloned())
         .collect();
+
+    let mut second_zebra = None;
+
+    if bane_cards
+        .values()
+        .cloned()
+        .collect::<Vec<_>>()
+        .contains(&&BaneCard::Zebra)
+    {
+        second_zebra = remaining_possible_kingdom_cards.next().cloned();
+
+        if second_zebra.is_none() {
+            return Err(GenSetupError::CouldNotSatisfySecondZebra);
+        }
+    }
 
     Ok(Setup {
         project_cards,
         kingdom_cards,
         bane_card,
         bane_cards,
+        second_zebra,
     })
 }
 
@@ -1444,6 +1485,15 @@ pub mod pretty {
 
     fn format_card(card: &KC, setup: &Setup) -> String {
         match &setup.bane_cards.get(&card) {
+            Some(BaneCard::Zebra) => format!(
+                " - {:?} (Zebra with {})",
+                card,
+                setup
+                    .second_zebra
+                    .clone()
+                    .map(|c| format!("{:?}", c))
+                    .unwrap_or(String::new())
+            ),
             Some(b) => format!(" - {:?} ({:?})", card, b),
             None => match &setup.bane_card {
                 Some(c) => format!(" - {:?} {}", card, if c == card { " (Bane)" } else { "" }),
@@ -1619,19 +1669,7 @@ Expansions' cards:
     #[wasm_bindgen]
     pub fn gen_error_js(json: &JsValue) -> String {
         let err = json.into_serde().unwrap();
-        match err {
-            GenSetupError::CouldNotSatisfyProjectsFromExpansions => {
-                "The requested project count could not be satisfied! Ensure you're not specifying expansions which preclude projects.".to_string()
-            }
-
-            GenSetupError::CouldNotSatisfyKingdomCards => "Could not pick 10 kingdom cards! Ensure your filters don't over-limit cards.".to_string(),
-
-            GenSetupError::CouldNotSatisfyBaneCard => "Could not pick a bane card! Ensure your filters don't over-limit cards.".to_string(),
-
-            GenSetupError::IntersectingCardBansAndIncludes(cards) => format!("I can't ban and include cards! The following exist in the ban and include lists: {:?}", cards),
-
-            GenSetupError::TooManyCardsIncluded => "Too many cards were asked to be included! I currently can't generate a kingdom with more than 10 cards.".to_string(),
-        }
+        gen_error(err)
     }
 
     pub fn gen_error(err: GenSetupError) -> String {
@@ -1643,6 +1681,8 @@ Expansions' cards:
             GenSetupError::CouldNotSatisfyKingdomCards => "Could not pick 10 kingdom cards! Ensure your filters don't over-limit cards.".to_string(),
 
             GenSetupError::CouldNotSatisfyBaneCard => "Could not pick a bane card! Ensure your filters don't over-limit cards.".to_string(),
+
+            GenSetupError::CouldNotSatisfySecondZebra => "Could not pick a second zebra card! Ensure your filters don't over-limit cards.".to_string(),
 
             GenSetupError::IntersectingCardBansAndIncludes(cards) => format!("I can't ban and include cards! The following exist in the ban and include lists: {:?}", cards),
 

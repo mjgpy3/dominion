@@ -36,6 +36,8 @@ jobs:
           npm run release
       - name: Commit
         run: |
+          git config user.name "Release Site"
+          git config user.email "<>"
           git add -A
           git commit -m "Cut site release"
           git push
