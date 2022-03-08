@@ -1556,10 +1556,9 @@ pub mod pretty {
 
         format!(
             "\
-._______________.
-|               |
-| Kingdom Cards |
-|_______________|
+┌───────────────┐
+│ Kingdom Cards │
+└───────────────┘
 
 {}",
             kingdom_cards
@@ -1605,10 +1604,9 @@ pub mod pretty {
 
         format!(
             "\
-._______________.
-|               |
-| Project Cards |
-|_______________|
+┌───────────────┐
+│ Project Cards │
+└───────────────┘
 
 {}",
             project_cards

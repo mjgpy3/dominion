@@ -35,59 +35,59 @@ You might get a kingdom like
 ```haskell
 ------------------ SETUP ------------------
 
-._______________.
-|               |
-| Kingdom Cards |
-|_______________|
+┌───────────────┐
+│ Kingdom Cards │
+└───────────────┘
 
+Cornucopia
+ - Young Witch 
 Base2/Base1
+ - Chapel 
  - Festival 
  - Gardens 
- - Militia 
- - Moneylender 
- - Remodel 
+ - Laboratory 
+ - Moneylender (Bane)
+ - Throne Room 
 Renaissance
- - CargoShip  (Bane)
- - MountainVillage 
- - OldWitch 
- - Recruiter 
- - Spices 
-Cornucopia
- - YoungWitch 
+ - Old Witch 
+ - Patron 
+ - Villain 
+Base2
+ - Sentry 
 
-._______________.
-|               |
-| Project Cards |
-|_______________|
+┌───────────────┐
+│ Project Cards │
+└───────────────┘
 
 Renaissance
  - CropRotation
- - Pageant
+ - Piazza
+
 
 ------------------ HISTS ------------------
 
 Cards' Costs:
 -------------
-2:  (0)
-3: ■ (1)
-4: ■■■■■■ (6)
-5: ■■■■ (4)
+2: ■ (1)
+3:  (0)
+4: ■■■■■ (5)
+5: ■■■■■ (5)
 6:  (0)
 
-Cards' Types:
+Cards' types:
 -------------
-Action  : ■■■■■■■■■ (9)
+Action  : ■■■■■■■■■■ (10)
 Attack  : ■■■ (3)
-Reaction:  (0)
+Reaction: ■ (1)
 Victory : ■ (1)
-Treasure: ■ (1)
-Duration: ■ (1)
+Treasure:  (0)
+Duration:  (0)
 
-Expansions' Cards:
+Expansions' cards:
 -----------------
-Base1      : ■■■■■ (5)
-Base2      : ■■■■■ (5)
-Renaissance: ■■■■■ (5)
+Base1      : ■■■■■■ (6)
+Base2      : ■■■■■■■ (7)
+Renaissance: ■■■ (3)
 Cornucopia : ■ (1)
 ```
 
