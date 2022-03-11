@@ -1621,6 +1621,12 @@ pub mod pretty {
         )
     }
 
+    #[wasm_bindgen]
+    pub fn hists_js(json: &JsValue) -> String {
+        let setup = json.into_serde().unwrap();
+        hists(&setup)
+    }
+
     pub fn hists(setup: &Setup) -> String {
         let cost_zeros = KC::iter()
             .map(|c| Hist::n(c.base_cost(), 0))

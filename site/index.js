@@ -188,6 +188,8 @@ function Setup({ setup, cardExpansions }) {
           </ul>
         </>
       )}
+      <h2>Hists</h2>
+      <pre>{Dominion.hists_js(setup)}</pre>
     </>
   );
 }
