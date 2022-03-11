@@ -13,11 +13,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: site
-      - name: Generate rust docs
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --target-dir docs/rustdocs
       - name: Build WASM
         run: |
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
