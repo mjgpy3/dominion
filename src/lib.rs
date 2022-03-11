@@ -1462,6 +1462,7 @@ pub mod pretty {
     use super::hist::Hist;
     use super::*;
     use chrono::prelude::*;
+    use std::fmt::Debug;
 
     pub fn code(name: String, setup: &Setup) -> String {
         let now_local = Local::now();
@@ -1491,15 +1492,33 @@ pub mod pretty {
                 setup
                     .second_zebra
                     .clone()
-                    .map(|c| format!("{:?}", c))
+                    .map(spaces)
                     .unwrap_or(String::new())
             ),
-            Some(b) => format!(" - {:?} ({:?})", card, b),
+            Some(b) => format!(" - {} ({})", spaces(card), spaces(b)),
             None => match &setup.bane_card {
-                Some(c) => format!(" - {:?} {}", card, if c == card { " (Bane)" } else { "" }),
-                None => format!(" - {:?}", card),
+                Some(c) => format!(
+                    " - {} {}",
+                    spaces(card),
+                    if c == card { "(Bane)" } else { "" }
+                ),
+                None => format!(" - {}", spaces(card)),
             },
         }
+    }
+
+    fn spaces<T: Debug>(card: T) -> String {
+        format!("{:?}", card)
+            .chars()
+            .enumerate()
+            .flat_map(|(i, c)| {
+                if i == 0 || !c.is_uppercase() {
+                    vec![c]
+                } else {
+                    vec![' ', c]
+                }
+            })
+            .collect()
     }
 
     fn kingdom_card_by_expansion_list(setup: &Setup) -> String {
@@ -1537,10 +1556,9 @@ pub mod pretty {
 
         format!(
             "\
-._______________.
-|               |
-| Kingdom Cards |
-|_______________|
+┌───────────────┐
+│ Kingdom Cards │
+└───────────────┘
 
 {}",
             kingdom_cards
@@ -1586,10 +1604,9 @@ pub mod pretty {
 
         format!(
             "\
-._______________.
-|               |
-| Project Cards |
-|_______________|
+┌───────────────┐
+│ Project Cards │
+└───────────────┘
 
 {}",
             project_cards
@@ -1602,6 +1619,12 @@ pub mod pretty {
             kingdom_card_by_expansion_list(&setup),
             project_card_by_expansion_list(&setup.project_cards)
         )
+    }
+
+    #[wasm_bindgen]
+    pub fn hists_js(json: &JsValue) -> String {
+        let setup = json.into_serde().unwrap();
+        hists(&setup)
     }
 
     pub fn hists(setup: &Setup) -> String {
