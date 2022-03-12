@@ -111,6 +111,18 @@ mod tests {
     }
 
     #[test]
+    fn young_witch_implies_a_bane_card_always_costs_2_or_3() {
+        let setup = gen_setup(SetupConfig::including_cards(HashSet::from([
+            KC::YoungWitch,
+        ])))
+        .unwrap();
+
+        let bane_cost = &setup.bane_card.unwrap().base_cost().clone();
+
+        assert!(bane_cost == &2 || bane_cost == &3);
+    }
+
+    #[test]
     fn no_young_witch_no_bane_card() {
         let setup = gen_setup(SetupConfig {
             include_expansions: Some(HashSet::from([Expansion::Cornucopia])),
@@ -1146,6 +1158,12 @@ impl Setup {
     }
 }
 
+#[wasm_bindgen]
+pub fn setup_kingdom_cards_js(json: &JsValue) -> JsValue {
+    let setup: Setup = json.into_serde().unwrap();
+    JsValue::from_serde(&setup.cards()).unwrap()
+}
+
 /// The number of projects allowed in a game
 #[derive(EnumString, Debug, Deserialize_repr, Serialize_repr, EnumIter)]
 #[repr(u8)]
@@ -1414,7 +1432,10 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
 
     let mut bane_card = None;
 
-    let mut remaining_possible_kingdom_cards = possible_kingdom_cards.iter().skip(random_needed);
+    let mut remaining_possible_kingdom_cards = possible_kingdom_cards
+        .iter()
+        .skip(random_needed)
+        .filter(|c| c.base_cost() == 2 || c.base_cost() == 3);
 
     if kingdom_cards.contains(&KC::YoungWitch) {
         bane_card = remaining_possible_kingdom_cards.next().cloned();
