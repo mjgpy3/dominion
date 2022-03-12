@@ -157,7 +157,7 @@ function Setup({ setup, cardExpansions }) {
     return spaces(card);
   };
 
-  setup.kingdom_cards.forEach((kc) => {
+  Dominion.setup_kingdom_cards_js(setup).forEach((kc) => {
     const expansions = cardExpansions[kc].sort().join("/");
     usedExpansions.add(expansions);
     cardsByExpansion[expansions] = (cardsByExpansion[expansions] || [])
