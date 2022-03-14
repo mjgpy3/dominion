@@ -170,11 +170,11 @@ function Setup({ setup, cardExpansions }) {
   return (
     <>
       <h1>Kingdom</h1>
-      <div style={{ display: "grid", "grid-template-columns": "auto auto" }}>
+      <div id="kingdom-grid" style={{ display: "grid", "grid-template-columns": "auto auto" }}>
         {usedExpansionsSorted.map((expansion) => (
           <>
-            <div>{expansion}</div>
-            <div>{cardsByExpansion[expansion].map(formatCard).join(", ")}</div>
+            <div className="expansion">{expansion}</div>
+            <div className="expansion-cards">{cardsByExpansion[expansion].map(formatCard).join(", ")}</div>
           </>
         ))}
       </div>
@@ -183,7 +183,7 @@ function Setup({ setup, cardExpansions }) {
           <h1>Projects</h1>
           <ul>
             {setup.project_cards.map((project) => (
-              <li>{project}</li>
+              <li className="project-card">{project}</li>
             ))}
           </ul>
         </>
