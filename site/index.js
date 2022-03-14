@@ -170,11 +170,16 @@ function Setup({ setup, cardExpansions }) {
   return (
     <>
       <h1>Kingdom</h1>
-      <div id="kingdom-grid" style={{ display: "grid", "grid-template-columns": "auto auto" }}>
+      <div
+        id="kingdom-grid"
+        style={{ display: "grid", "grid-template-columns": "auto auto" }}
+      >
         {usedExpansionsSorted.map((expansion) => (
           <>
             <div className="expansion">{expansion}</div>
-            <div className="expansion-cards">{cardsByExpansion[expansion].map(formatCard).join(", ")}</div>
+            <div className="expansion-cards">
+              {cardsByExpansion[expansion].map(formatCard).join(", ")}
+            </div>
           </>
         ))}
       </div>
