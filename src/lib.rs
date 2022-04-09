@@ -541,6 +541,31 @@ pub enum KC {
     Woodcutter,
     Workshop,
     YoungWitch,
+    Loan,
+    TradeRoute,
+    Watchtower,
+    Bishop,
+    Monument,
+    Quarry,
+    Talisman,
+    WorkersVillage,
+    City,
+    Contraband,
+    CountingHouse,
+    Mint,
+    Mountebank,
+    Rabble,
+    RoyalSeal,
+    Vault,
+    Venture,
+    Goons,
+    GrandMarket,
+    Hoard,
+    Bank,
+    Expand,
+    Forge,
+    KingsCourt,
+    Peddler,
 }
 
 /// What is a card's base cost?
@@ -687,6 +712,31 @@ impl BaseCost for KC {
             KC::Woodcutter => 3,
             KC::Workshop => 3,
             KC::YoungWitch => 4,
+            KC::Loan => 3,
+            KC::TradeRoute => 3,
+            KC::Watchtower => 3,
+            KC::Bishop => 4,
+            KC::Monument => 4,
+            KC::Quarry => 4,
+            KC::Talisman => 4,
+            KC::WorkersVillage => 4,
+            KC::City => 5,
+            KC::Contraband => 5,
+            KC::CountingHouse => 5,
+            KC::Mint => 5,
+            KC::Mountebank => 5,
+            KC::Rabble => 5,
+            KC::RoyalSeal => 5,
+            KC::Vault => 5,
+            KC::Venture => 5,
+            KC::Goons => 6,
+            KC::GrandMarket => 6,
+            KC::Hoard => 6,
+            KC::Bank => 7,
+            KC::Expand => 7,
+            KC::Forge => 7,
+            KC::KingsCourt => 7,
+            KC::Peddler => 8,
         }
     }
 }
@@ -714,6 +764,7 @@ pub enum Expansion {
     Cornucopia,
     Intrigue2,
     Seaside,
+    Prosperity,
 }
 
 /// To what expansions does a card belong?
@@ -866,6 +917,32 @@ impl Expansions for KC {
             | KC::Salvager
             | KC::SeaHag
             | KC::TreasureMap => vec![Expansion::Seaside],
+
+            KC::Loan
+            | KC::TradeRoute
+            | KC::Watchtower
+            | KC::Bishop
+            | KC::Monument
+            | KC::Quarry
+            | KC::Talisman
+            | KC::WorkersVillage
+            | KC::City
+            | KC::Contraband
+            | KC::CountingHouse
+            | KC::Mint
+            | KC::Mountebank
+            | KC::Rabble
+            | KC::RoyalSeal
+            | KC::Vault
+            | KC::Venture
+            | KC::Goons
+            | KC::GrandMarket
+            | KC::Hoard
+            | KC::Bank
+            | KC::Expand
+            | KC::Forge
+            | KC::KingsCourt
+            | KC::Peddler => vec![Expansion::Prosperity],
         }
     }
 }
@@ -1065,6 +1142,31 @@ impl CardTypes for KC {
             KC::Woodcutter => vec![CardType::Action],
             KC::Workshop => vec![CardType::Action],
             KC::YoungWitch => vec![CardType::Action, CardType::Attack],
+            KC::Loan => vec![CardType::Treasure],
+            KC::TradeRoute => vec![CardType::Action],
+            KC::Watchtower => vec![CardType::Action, CardType::Reaction],
+            KC::Bishop => vec![CardType::Action],
+            KC::Monument => vec![CardType::Action],
+            KC::Quarry => vec![CardType::Treasure],
+            KC::Talisman => vec![CardType::Treasure],
+            KC::WorkersVillage => vec![CardType::Action],
+            KC::City => vec![CardType::Action],
+            KC::Contraband => vec![CardType::Treasure],
+            KC::CountingHouse => vec![CardType::Action],
+            KC::Mint => vec![CardType::Action],
+            KC::Mountebank => vec![CardType::Action, CardType::Attack],
+            KC::Rabble => vec![CardType::Action, CardType::Attack],
+            KC::RoyalSeal => vec![CardType::Treasure],
+            KC::Vault => vec![CardType::Action],
+            KC::Venture => vec![CardType::Treasure],
+            KC::Goons => vec![CardType::Action, CardType::Attack],
+            KC::GrandMarket => vec![CardType::Action],
+            KC::Hoard => vec![CardType::Treasure],
+            KC::Bank => vec![CardType::Treasure],
+            KC::Expand => vec![CardType::Action],
+            KC::Forge => vec![CardType::Action],
+            KC::KingsCourt => vec![CardType::Action],
+            KC::Peddler => vec![CardType::Action],
         }
     }
 }
