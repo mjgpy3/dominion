@@ -1,0 +1,42 @@
+body {
+  margin-left: 150px;
+  margin-right: 150px;
+  background-color: #ede4cb;
+  font-size: 1.5rem;
+}
+
+h1 {
+  color: #25140a;
+}
+
+p, li {
+    color: #3a2614;
+}
+
+a {
+    color: #8c7474;
+}
+
+.taglist {
+    margin-top: .5rem;
+}
+
+.post-date {
+    font-style: italic;
+}
+
+a[href*="tag-"] {
+  text-decoration: none;
+  border: 2px solid darkgrey;
+  border-radius: 5px;
+  background-color: #3a2614;
+  color: #ede4cb;
+  padding: 3px;
+}
+
+.org-src-container {
+  border: 3px solid lightblue;
+  padding-left: 1rem;
+  border-radius: 3px;
+  background-color: white;
+}
