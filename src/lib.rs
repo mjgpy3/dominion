@@ -146,8 +146,8 @@ mod tests {
             include_cards: None,
             ban_cards: Some(HashSet::from([banned_card.clone()])),
             bane_count: None,
-        })
-        .unwrap();
+        });
+        let setup = setup.unwrap();
 
         assert!(!setup.cards().contains(&banned_card));
     }
@@ -1375,7 +1375,7 @@ pub fn setup_kingdom_cards_js(json: &JsValue) -> JsValue {
 }
 
 /// The number of projects allowed in a game
-#[derive(EnumString, Debug, Deserialize_repr, Serialize_repr, EnumIter)]
+#[derive(EnumString, Debug, Deserialize_repr, Serialize_repr, EnumIter, Clone)]
 #[repr(u8)]
 pub enum ProjectCount {
     #[strum(serialize = "0")]
@@ -1403,7 +1403,7 @@ impl ProjectCount {
 }
 
 /// The number of custom bane cards allowed in a game
-#[derive(EnumString, Debug, Deserialize_repr, Serialize_repr, EnumIter)]
+#[derive(EnumString, Debug, Deserialize_repr, Serialize_repr, EnumIter, Clone)]
 #[repr(u8)]
 pub enum BaneCount {
     #[strum(serialize = "0")]
@@ -1434,7 +1434,7 @@ impl BaneCount {
 }
 
 /// How to setup a game
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetupConfig {
     /// Which specific expansions to include
     pub include_expansions: Option<HashSet<Expansion>>,
@@ -1587,6 +1587,7 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
     }
 
     let desired_expansions = config
+        .clone()
         .include_expansions
         .unwrap_or(Expansion::iter().collect());
 
@@ -1594,9 +1595,9 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
         .filter(|p| !expansion_set(p).is_disjoint(&desired_expansions))
         .collect();
 
-    let banned_cards = config.ban_cards.unwrap_or(HashSet::new());
+    let banned_cards = config.ban_cards.clone().unwrap_or(HashSet::new());
 
-    let forced_kingdom_cards = config.include_cards.unwrap_or(HashSet::new());
+    let forced_kingdom_cards = config.include_cards.clone().unwrap_or(HashSet::new());
 
     if forced_kingdom_cards.len() > 10 {
         return Err(GenSetupError::TooManyCardsIncluded);
@@ -1608,7 +1609,7 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
         .filter(|kc| !forced_kingdom_cards.contains(kc))
         .collect();
 
-    let project_count = match config.project_count {
+    let project_count = match &config.project_count {
         Some(desired) => {
             if possible_projects.len() < desired.count() {
                 return Err(GenSetupError::CouldNotSatisfyProjectsFromExpansions);
@@ -1650,6 +1651,15 @@ pub fn gen_setup(config: SetupConfig) -> Result<Setup, GenSetupError> {
     if kingdom_cards.contains(&KC::YoungWitch) {
         bane_card = remaining_possible_kingdom_cards.next().cloned();
 
+        // We struck out but making this work is possible. Let's try again.
+        if bane_card.is_none()
+            && kingdom_cards
+                .iter()
+                .any(|kc| kc.base_cost() == 2 || kc.base_cost() == 3)
+        {
+            return gen_setup(config.clone());
+        }
+        // Not possible.
         if bane_card.is_none() {
             return Err(GenSetupError::CouldNotSatisfyBaneCard);
         }
